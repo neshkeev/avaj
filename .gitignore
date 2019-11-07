@@ -204,4 +204,6 @@ tags
 # Persistent undo
 [._]*.un~
 
+target/
+
 # End of https://www.gitignore.io/api/vim,java,eclipse,intellij

@@ -1,7 +1,5 @@
 package org.sample;
 
-import org.openjdk.jmh.runner.RunnerException;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -11,7 +9,7 @@ import java.util.stream.Stream;
 
 public class MyBenchmark {
 
-    public static void main(String[] args) throws RunnerException {
+    public static void main(String[] args) {
 
 //        Just "Hello " >>= \str1 ->  Just "World" >>= \str2 ->  Just (str1 ++ str2)
 //        (>>=) (Just "Hello ") (\str1 ->  (>>=) (Just "World") (\str2 ->  Just (str1 ++ str2)))

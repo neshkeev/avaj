@@ -34,13 +34,14 @@ class ReaderTKind<WITNESS, R, A, K extends Kind<WITNESS, A>> implements Kind<Rea
 
         @Override
         public <T> Kind<ReaderTKind.mu<WITNESS, R, A>, T> pure(T a) {
-            Function<R, Kind<WITNESS, T>> frt = r -> internalMonad.pure(a);
-            ReaderT<WITNESS, R, T, Kind<WITNESS, T>> c = frt::apply;
+		return null;
+            // Function<R, Kind<WITNESS, T>> frt = r -> internalMonad.pure(a);
+            // ReaderT<WITNESS, R, T, Kind<WITNESS, T>> c = frt::apply;
 
-            final ReaderTKind<WITNESS, R, T, Kind<WITNESS, T>> cand = new ReaderTKind<WITNESS, R, T, Kind<WITNESS, T>>(c);
-            Kind<ReaderTKind.mu<WITNESS, R, T>, Kind<WITNESS, T>> res = cand;
+            // final ReaderTKind<WITNESS, R, T, Kind<WITNESS, T>> cand = new ReaderTKind<WITNESS, R, T, Kind<WITNESS, T>>(c);
+            // Kind<ReaderTKind.mu<WITNESS, R, T>, Kind<WITNESS, T>> res = cand;
 
-            return res;
+            // return res;
         }
     }
 }
