@@ -1,8 +1,31 @@
 package org.sample.cont.typeclass;
 
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 public class ReaderPlayground {
 
     public static void main(String[] args) {
+        final var listMonad = new ListKind.ListMonad();
+        final var readerMonadT = new ReaderTKind.ReaderTMonad<Integer, ListKind.mu>(listMonad);
+        final var greets = new ListKind<>(List.of("Hello, ", "Goodbye, "));
+        final ReaderT<Integer, ListKind.mu, String> gen = r -> greets;
+        final var start = new ReaderTKind<>(gen);
+
+        final var kind = readerMonadT.flatMap(start,
+                a -> readerMonadT.flatMap(readerMonadT.lift(listMonad.pure("World")),
+                b -> readerMonadT.flatMap(readerMonadT.ask(),
+                n -> readerMonadT.pure((a + b + "\n").repeat(n))
+        )));
+
+        final var delegate = ReaderTKind.narrow(kind).getDelegate();
+        final var lK = delegate.apply(2);
+
+        ListKind.narrow(lK).getDelegate().forEach(System.out::println);
+    }
+
+    private static void plainEader() {
         final var readerMonad = new Reader.ReaderMonad<Integer>();
         final var idMonad = Id.Instance.INSTANCE;
 
@@ -36,5 +59,38 @@ public class ReaderPlayground {
         final var idK = delegate.apply(2);
         final var narrow = Id.narrow(idK);
         System.out.println(narrow.getValue());
+    }
+}
+
+class ListKind<T> implements App<ListKind.mu, T> {
+    private final List<T> delegate;
+
+    ListKind(List<T> delegate) { this.delegate = delegate; }
+
+    public List<T> getDelegate() { return delegate; }
+
+    public static <T> ListKind<T> narrow(App<ListKind.mu, T> kind) { return (ListKind<T>) kind; }
+
+    public static final class mu implements Monad.mu { }
+
+    public static class ListMonad implements Monad<ListKind.mu> {
+
+        @Override
+        public <A> App<ListKind.mu, A> pure(A a) {
+            return new ListKind<>(List.of(a));
+        }
+
+        @Override
+        public <A, B> App<ListKind.mu, B> flatMap(App<ListKind.mu, A> ma, Function<A, App<ListKind.mu, B>> aToMb) {
+            final var mas = narrow(ma).getDelegate();
+            final var bs = mas.stream()
+                    .map(aToMb)
+                    .map(ListKind::narrow)
+                    .map(ListKind::getDelegate)
+                    .flatMap(List::stream)
+                    .collect(Collectors.toList());
+
+            return new ListKind<>(bs);
+        }
     }
 }
