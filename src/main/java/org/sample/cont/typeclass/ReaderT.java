@@ -55,11 +55,11 @@ class ReaderTKind<R, M extends Monad.mu, A> implements App<ReaderTKind.mu<R, M>,
 
     public static final class mu<R, M> implements Monad.mu {}
 
-    public static final class ReaderMonad<R, M extends Monad.mu> implements Monad<mu<R, M>>, MonadTrans<mu<R, M>> {
+    public static class ReaderTMonad<R, M extends Monad.mu> implements Monad<mu<R, M>>, MonadTrans<mu<R, M>> {
 
         private final Monad<M> monad;
 
-        public ReaderMonad(Monad<M> monad) {
+        public ReaderTMonad(Monad<M> monad) {
             this.monad = monad;
         }
 
@@ -136,6 +136,17 @@ class Id<A> implements App<Id.mu, A> {
         public <A, B> App<Id.mu, B> flatMap(App<Id.mu, A> ma, Function<A, App<Id.mu, B>> aToMb) {
             final var value = narrow(ma).getValue();
             return aToMb.apply(value);
+        }
+    }
+}
+
+class Reader<R, A> extends ReaderTKind<R, Id.mu, A> {
+    Reader(final Function<R, A> delegate) {
+        super(r -> Id.Instance.INSTANCE.pure(delegate.apply(r)));
+    }
+    public static final class ReaderMonad<R> extends ReaderTMonad<R, Id.mu> {
+        public ReaderMonad() {
+            super(Id.Instance.INSTANCE);
         }
     }
 }
