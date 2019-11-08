@@ -38,6 +38,10 @@ interface Monad<M extends Monad.mu> extends Applicative<M> {
     interface mu extends Applicative.mu { }
 }
 
+interface MonadTrans<T extends Monad.mu> {
+    <M extends Monad.mu, A> App<? extends Monad.mu, A> lift(App<M, A> m);
+}
+
 interface ReaderT<R, M extends Monad.mu, A> extends Function<R, App<M, A>> { }
 
 class ReaderTKind<R, M extends Monad.mu, A> implements App<ReaderTKind.mu<R, M>, A> {
@@ -48,16 +52,16 @@ class ReaderTKind<R, M extends Monad.mu, A> implements App<ReaderTKind.mu<R, M>,
     public ReaderT<R, M, A> getDelegate() { return delegate; }
 
     public static<R, M extends Monad.mu, A> ReaderTKind<R, M, A> narrow(App<ReaderTKind.mu<R, M>, A> kind) { return (ReaderTKind<R, M, A>) kind; }
+
     public static final class mu<R, M> implements Monad.mu {}
 
-    public static final class ReaderMonad<R, M extends Monad.mu> implements Monad<mu<R, M>> {
+    public static final class ReaderMonad<R, M extends Monad.mu> implements Monad<mu<R, M>>, MonadTrans<mu<R, M>> {
 
         private final Monad<M> monad;
 
         public ReaderMonad(Monad<M> monad) {
             this.monad = monad;
         }
-
 
         @Override
         public <A> App<ReaderTKind.mu<R, M>, A> pure(A a) {
@@ -83,6 +87,24 @@ class ReaderTKind<R, M extends Monad.mu, A> implements App<ReaderTKind.mu<R, M>,
                 );
                 return mbApp;
             });
+        }
+
+        @Override
+        public <Mon extends Monad.mu, A> App<ReaderTKind.mu<R, Mon>, A> lift(App<Mon, A> m) {
+            return new ReaderTKind<>(r -> m);
+        }
+
+        public App<ReaderTKind.mu<R, M>, R> ask() {
+            return new ReaderTKind<>(r -> monad.pure(r));
+        }
+
+        public<A> App<ReaderTKind.mu<R, M>, A> asks(Function<? super R, ? extends A> fn) {
+            return new ReaderTKind<>(r -> monad.pure(fn.apply(r)));
+        }
+
+        public<A> App<ReaderTKind.mu<R, M>, A> local(Function<? super R, ? extends R> fn, App<ReaderTKind.mu<R, M>, A> from) {
+            final ReaderT<R, M, A> delegate = ReaderTKind.narrow(from).getDelegate().compose(fn)::apply;
+            return new ReaderTKind<>(delegate);
         }
     }
 }
