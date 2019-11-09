@@ -6,4 +6,4 @@ import com.github.neshkeev.avaj.typeclasses.Monad;
 import java.util.function.Function;
 
 // * -> (* -> *) -> * -> *
-public interface ReaderT<R, M extends Monad.mu, A> extends Function<R, App<M, A>> { }
+public interface ContT<R, M extends Monad.mu, A> extends Function<Function<A, App<M, R>>, App<M, R>> { }

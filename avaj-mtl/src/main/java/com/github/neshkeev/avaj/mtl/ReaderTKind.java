@@ -11,15 +11,19 @@ public class ReaderTKind<R, M extends Monad.mu, A> implements App<ReaderTKind.mu
 
     private final ReaderT<R, M, A> delegate;
 
-    public ReaderTKind(ReaderT<R, M, A> delegate) { this.delegate = delegate; }
+    public ReaderTKind(@NotNull final ReaderT<R, M, A> delegate) { this.delegate = delegate; }
 
+    @NotNull
     public ReaderT<R, M, A> getDelegate() { return delegate; }
 
-    public static<R, M extends Monad.mu, A> ReaderTKind<R, M, A> narrow(App<ReaderTKind.mu<R, M>, A> kind) { return (ReaderTKind<R, M, A>) kind; }
+    @NotNull
+    public static<R, M extends Monad.mu, A> ReaderTKind<R, M, A> narrow(@NotNull final App<ReaderTKind.mu<R, M>, A> kind) {
+        return (ReaderTKind<R, M, A>) kind;
+    }
 
     public static final class mu<R, M> implements Monad.mu {}
 
-    public static class ReaderTMonad<R, M extends Monad.mu> implements Monad<mu<R, M>>, MonadTrans<mu<R, M>> {
+    public static class ReaderTMonad<R, M extends Monad.mu> implements Monad<mu<R, M>>, MonadTrans<mu<R, M>, M> {
 
         private final Monad<M> monad;
 
@@ -29,9 +33,9 @@ public class ReaderTKind<R, M extends Monad.mu, A> implements App<ReaderTKind.mu
 
         @NotNull
         @Override
-        public <A> App<ReaderTKind.mu<R, M>, A> pure(A a) {
+        public <A> App<ReaderTKind.mu<R, M>, A> pure(@NotNull final A a) {
             final App<M, A> pure = monad.pure(a);
-            ReaderT<R, M, A> reader = r -> pure;
+            final ReaderT<R, M, A> reader = r -> pure;
             return new ReaderTKind<>(reader);
         }
 
@@ -57,7 +61,7 @@ public class ReaderTKind<R, M extends Monad.mu, A> implements App<ReaderTKind.mu
 
         @NotNull
         @Override
-        public <Mon extends Monad.mu, A> App<ReaderTKind.mu<R, Mon>, A> lift(@NotNull final App<Mon, A> m) {
+        public <A> App<ReaderTKind.mu<R, M>, A> lift(@NotNull final App<M, A> m) {
             return new ReaderTKind<>(r -> m);
         }
 

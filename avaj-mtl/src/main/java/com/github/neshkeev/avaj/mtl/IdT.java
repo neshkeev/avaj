@@ -26,7 +26,7 @@ public final class IdT<M extends Monad.mu, A> implements App<IdT.mu<M>, A> {
 
     public static final class mu<M> implements Monad.mu { }
 
-    public static final class IdTMonad<M extends Monad.mu> implements Monad<mu<M>>, MonadTrans<mu<M>> {
+    public static final class IdTMonad<M extends Monad.mu> implements Monad<mu<M>>, MonadTrans<mu<M>, M> {
         private final Monad<M> internalMonad;
 
         public IdTMonad(@NotNull final Monad<M> internalMonad) {
@@ -41,7 +41,7 @@ public final class IdT<M extends Monad.mu, A> implements App<IdT.mu<M>, A> {
 
         @NotNull
         @Override
-        public <Mon extends mu, A> App<? extends mu, A> lift(@NotNull final App<Mon, A> m) {
+        public <A> App<? extends mu, A> lift(@NotNull final App<M, A> m) {
             return new IdT<>(m);
         }
 
