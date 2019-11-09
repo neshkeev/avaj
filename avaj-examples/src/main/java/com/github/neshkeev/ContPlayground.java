@@ -1,4 +1,12 @@
-package org.sample.typeclass;
+package com.github.neshkeev;
+
+import com.github.neshkeev.avaj.App;
+import com.github.neshkeev.avaj.data.Cont;
+import com.github.neshkeev.avaj.data.kinds.ContKind;
+import com.github.neshkeev.avaj.mtl.Id;
+import com.github.neshkeev.avaj.mtl.Reader;
+import com.github.neshkeev.avaj.mtl.ReaderT;
+import com.github.neshkeev.avaj.mtl.ReaderTKind;
 
 import java.util.Collection;
 import java.util.List;
@@ -9,8 +17,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ContPlayground {
-
     public static void main(String[] args) {
+        heckPointedTest();
     }
 
     private static void heckPointedTest() {
@@ -27,10 +35,10 @@ public class ContPlayground {
         return checkpoint -> {
             final var kind = contMonad.flatMap(checkpoint.apply(start),
                     x1 -> contMonad.flatMap(checkpoint.apply(x1 + 10),
-                    x2 -> contMonad.flatMap(checkpoint.apply(x2 + 10),
-                    x3 -> contMonad.flatMap(checkpoint.apply(x3 + 10),
-                    x4 -> contMonad.pure(x4 + 10)
-            ))));
+                            x2 -> contMonad.flatMap(checkpoint.apply(x2 + 10),
+                                    x3 -> contMonad.flatMap(checkpoint.apply(x3 + 10),
+                                            x4 -> contMonad.pure(x4 + 10)
+                                    ))));
 
             final var res = ContKind.narrow(kind);
             return res;
@@ -80,7 +88,7 @@ public class ContPlayground {
 
         final var muIntegerKind = contMonad.flatMap(five,
                 a -> contMonad.flatMap(const4,
-                b -> contMonad.pure(a + b))
+                        b -> contMonad.pure(a + b))
         );
         System.out.println(ContKind.narrow(muIntegerKind).getDelegate().apply(List::of));
     }
@@ -133,7 +141,7 @@ public class ContPlayground {
 
         final var kind = contMonad.flatMap(cont3,
                 a -> contMonad.flatMap(cont5,
-                b -> contMonad.pure(a + b))
+                        b -> contMonad.pure(a + b))
         );
         final var simple = ContKind.narrow(kind).getDelegate().apply(Function.identity());
         System.out.println(simple);
@@ -150,9 +158,9 @@ public class ContPlayground {
 
         final var kind1 = contMonad1.flatMap(cont31,
                 b -> contMonad1.flatMap(cont51,
-                a -> contMonad1.flatMap(new ContKind<>(cont),
-                c -> contMonad1.pure(List.of(a + b + c))
-        )));
+                        a -> contMonad1.flatMap(new ContKind<>(cont),
+                                c -> contMonad1.pure(List.of(a + b + c))
+                        )));
 
         final var simple1 = ContKind.narrow(kind1).getDelegate().apply(Function.identity());
         System.out.println(simple1);
@@ -168,8 +176,8 @@ public class ContPlayground {
     ) {
         return cont -> ContPlayground.<T>square(a).apply(
                 r1 -> ContPlayground.<T>square(b).apply(
-                r2 -> cont.apply(r1 + r2)
-        ));
+                        r2 -> cont.apply(r1 + r2)
+                ));
     }
 
     private static void urried35() {
@@ -242,6 +250,40 @@ public class ContPlayground {
 
     public static <A, B, R> Function<A, ? extends Function<B, ? extends R>> curry(BiFunction<A, B, R> func) {
         return a -> b -> func.apply(a, b);
+    }
+
+    private static void eader() {
+        final var idMonad = Id.Instance.INSTANCE;
+        final var rm = new Reader.ReaderMonad<Integer>();
+        final var kind = rm.flatMap(rm.pure("hello"),
+            h -> rm.flatMap(rm.lift(idMonad.pure("World")),
+            w -> rm.flatMap(rm.asks(n -> n * 2),
+            n -> rm.pure((h + ", " + w + "!\n").repeat(n))
+        )));
+
+        final var delegate = ReaderTKind.narrow(kind).getDelegate();
+        final var lK = delegate.apply(3);
+
+        System.out.println(Id.narrow(lK).getValue());
+    }
+
+    private static void rans() {
+        final var idMonad = Id.Instance.INSTANCE;
+        final ReaderTKind.ReaderTMonad<Integer, Id.mu> readerMonadT = new ReaderTKind.ReaderTMonad<Integer, Id.mu>(idMonad);
+        final var greets = new Id<>("World");
+        final ReaderT<Integer, Id.mu, String> gen = r -> greets;
+        final var start = new ReaderTKind<>(gen);
+
+        final App<ReaderTKind.mu<Integer, Id.mu>, String> kind = readerMonadT.flatMap(start,
+                a -> readerMonadT.flatMap(readerMonadT.lift(idMonad.pure("World")),
+                b -> readerMonadT.flatMap(readerMonadT.ask(),
+                n -> readerMonadT.pure((a + ", " + b + "!\n").repeat(n))
+        )));
+
+        final var delegate = ReaderTKind.narrow(kind).getDelegate();
+        final var lK = delegate.apply(2);
+
+        System.out.println(Id.narrow(lK).getValue());
     }
 }
 
