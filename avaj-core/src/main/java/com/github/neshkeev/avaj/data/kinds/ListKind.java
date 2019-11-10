@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 public final class ListKind<T> implements App<ListKind.mu, T> {
     private final List<T> delegate;
 
-    ListKind(List<T> delegate) { this.delegate = delegate; }
+    public ListKind(List<T> delegate) { this.delegate = delegate; }
 
     public List<T> getDelegate() { return delegate; }
 
