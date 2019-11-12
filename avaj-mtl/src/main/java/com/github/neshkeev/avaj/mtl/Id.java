@@ -31,7 +31,7 @@ public final class Id<A> implements App<Id.mu, A> {
         return value.toString();
     }
 
-    public enum Instance implements Monad<Id.mu> {
+    public enum IdMonad implements com.github.neshkeev.avaj.typeclasses.Monad<mu> {
         INSTANCE;
 
         @NotNull

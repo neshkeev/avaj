@@ -12,5 +12,13 @@ public interface Functor<F extends Functor.mu> {
             @NotNull final Function<? super @NotNull A, ? extends @NotNull B> f
     );
 
+    default <A, B> Function<App<F, B>, App<F, A>> constMap(@NotNull final A a) {
+        final Function<A, Function<B, A>> cnst = v -> b -> v;
+        final var alwaysA = cnst.apply(a);
+        final var map = map(alwaysA);
+
+        return map::apply;
+    }
+
     interface mu extends K1 { }
 }

@@ -253,7 +253,7 @@ public class ContPlayground {
     }
 
     private static void eader() {
-        final var idMonad = Id.Instance.INSTANCE;
+        final var idMonad = Id.IdMonad.INSTANCE;
         final var rm = new Reader.ReaderMonad<Integer>();
         final var kind = rm.flatMap(rm.pure("hello"),
             h -> rm.flatMap(rm.lift(idMonad.pure("World")),
@@ -268,7 +268,7 @@ public class ContPlayground {
     }
 
     private static void rans() {
-        final var idMonad = Id.Instance.INSTANCE;
+        final var idMonad = Id.IdMonad.INSTANCE;
         final ReaderTKind.ReaderTMonad<Integer, Id.mu> readerMonadT = new ReaderTKind.ReaderTMonad<Integer, Id.mu>(idMonad);
         final var greets = new Id<>("World");
         final ReaderT<Integer, Id.mu, String> gen = r -> greets;

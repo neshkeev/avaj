@@ -10,7 +10,7 @@ import java.util.function.Function;
 // s -> m (a, s)
 public interface StateT<S, M extends Monad.mu, A> extends Function<S, App<M, StateT.Result<@NotNull S, @NotNull A>>> {
 
-    final class Result<S, A> {
+    public final class Result<S, A> {
         private final A value;
         private final S state;
 

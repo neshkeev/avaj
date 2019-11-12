@@ -27,6 +27,11 @@ public class StateTKind<S, M extends Monad.mu, A> implements App<StateTKind.mu<S
 
         private final Monad<M> internalMonad;
 
+        @NotNull
+        public static<S, M extends Monad.mu> StateTMonad<S, M> narrow(Monad<StateTKind.mu<S, M>> monad) {
+            return (StateTMonad<S, M>) monad;
+        }
+
         public StateTMonad(@NotNull final Monad<M> internalMonad) {
             this.internalMonad = internalMonad;
         }
@@ -44,11 +49,11 @@ public class StateTKind<S, M extends Monad.mu, A> implements App<StateTKind.mu<S
                 @NotNull final Function<@NotNull A, ? extends @NotNull App<StateTKind.mu<S, M>, B>> aToMb
         ) {
             final StateT<S, M, B> smbStateT = s -> {
-                final var ima = narrow(ma).getDelegate().apply(s);
+                final var ima = StateTKind.narrow(ma).getDelegate().apply(s);
                 return internalMonad.flatMap(ima,
-                        is -> narrow(aToMb.apply(is.getValue()))
+                        is -> StateTKind.narrow(aToMb.apply(is.getValue()))
                                 .getDelegate()
-                                .apply(s)
+                                .apply(is.getState())
                 );
             };
 

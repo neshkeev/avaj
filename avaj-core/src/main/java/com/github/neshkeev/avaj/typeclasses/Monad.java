@@ -42,7 +42,7 @@ public interface Monad<M extends Monad.mu> extends Applicative<M> {
 
     @Override
     default <A, B> Function<? super @NotNull App<M, A>, ? extends @NotNull App<M, B>> ap(
-        @NotNull final App<M, Function<? super @NotNull A, @NotNull B>> hfn
+        final @NotNull App<M, Function<? super @NotNull A, ? extends @NotNull B>> hfn
     ) {
         return maK ->
                 this.flatMap(maK,

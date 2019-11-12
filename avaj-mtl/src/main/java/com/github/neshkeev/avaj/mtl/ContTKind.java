@@ -24,10 +24,14 @@ public class ContTKind<R, M extends Monad.mu, A> implements App<ContTKind.mu<R, 
         return (ContTKind<R, M, A>) kind;
     }
 
-    public interface mu<R, M> extends Monad.mu { }
+    public interface mu<R, M extends Monad.mu> extends Monad.mu { }
 
     public static class ContTMonad<R, M extends Monad.mu> implements Monad<mu<R, M>>, MonadTrans<mu<R, M>, M> {
         private final Monad<M> monad;
+
+        public Monad<M> getMonad() {
+            return monad;
+        }
 
         public ContTMonad(@NotNull final Monad<M> monad) {
             this.monad = monad;
