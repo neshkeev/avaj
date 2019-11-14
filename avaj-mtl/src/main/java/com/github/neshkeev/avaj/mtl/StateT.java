@@ -4,6 +4,7 @@ import com.github.neshkeev.avaj.App;
 import com.github.neshkeev.avaj.typeclasses.Monad;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
 import java.util.function.Function;
 
 // * -> (* -> *) -> * -> *
@@ -24,5 +25,10 @@ public interface StateT<S, M extends Monad.mu, A> extends Function<S, App<M, Sta
 
         @NotNull
         public final S getState() { return state; }
+
+        @Override
+        public String toString() {
+            return Objects.toString(value);
+        }
     }
 }

@@ -2,8 +2,12 @@ package com.github.neshkeev;
 
 import com.github.neshkeev.avaj.App;
 import com.github.neshkeev.avaj.Unit;
-import com.github.neshkeev.avaj.mtl.*;
+import com.github.neshkeev.avaj.mtl.ContT;
+import com.github.neshkeev.avaj.mtl.ContTKind;
+import com.github.neshkeev.avaj.mtl.StateT;
+import com.github.neshkeev.avaj.mtl.StateTKind;
 import com.github.neshkeev.avaj.typeclasses.Monad;
+import com.github.neshkeev.avaj.typeclasses.MonadTrans;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -13,22 +17,22 @@ import java.util.stream.Collectors;
 
 public class ContTPlayground {
     public static void main(String[] args) {
-        final var id = Id.IdMonad.INSTANCE;
-        final var m = new CoroutineTKind.CoroutineTMonad<Unit, Id.mu>(id);
+        final var w = WriterK.WriterMonad.INSTANCE;
+        final var m = new CoroutineTKind.CoroutineTMonad<Unit, WriterK.mu>(w);
 
-        final var five = printOne(m, 5, id);
-        final var six = printOne(m, 6, id);
+        final var wHello = w.tell("Hello");
+        final var myHello = m.flatMap(m.lift(wHello),
+                x -> m.flatMap(m.yieldCo(),
+                y -> m.flatMap(m.lift(w.tell(", ")),
+                z -> m.yieldCo()
+        )));
+        final var fHello = m.forkCo(CoroutineTKind.narrow(myHello));
 
-        System.out.println("run coroutines");
+        final var wWorld = w.tell("World");
+        final var myWorld = m.flatMap(m.lift(wWorld), x -> m.yieldCo());
 
-        final var muUnitApp = m.runCoroutine(CoroutineTKind.narrow(m.followBy(m.forkCo(five), six)));
-
-//        System.out.println(Id.narrow(muUnitApp).getValue());
-    }
-
-    public static<R, M extends Monad.mu> CoroutineTKind<R, M, Unit> printOne(CoroutineTKind.CoroutineTMonad<R, M> m, final int i, Monad<M> monad) {
-
-        return CoroutineTKind.narrow(m.followBy(m.pure(monad.pure(i)), m.yieldCo()));
+        final var wri = m.runCoroutine(CoroutineTKind.narrow(m.followBy(m.forkCo(fHello), CoroutineTKind.narrow(myWorld))));
+        System.out.println(WriterK.narrow(wri).getDelegate());
     }
 }
 
@@ -58,15 +62,17 @@ class CoroutineTKind<R, M extends Monad.mu, A>
     public interface mu<R, M extends Monad.mu> extends ContTKind.mu<R, M> { }
 
     public static final class CoroutineTMonad<R, M extends Monad.mu>
-        implements Monad< CoroutineTKind.mu< R, ContTKind.mu< R, StateTKind.mu< List<CoroutineT<R, M, Unit>>, M > > > > {
+        implements Monad<CoroutineTKind.mu<R, ContTKind.mu<R, StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>>>>,
+            MonadTrans<CoroutineTKind.mu<R, ContTKind.mu<R, StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>>>, M>
+    {
 
         private final ContTKind.ContTMonad<R, StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>> contMonad;
         private final StateTKind.StateTMonad<List<CoroutineT<R, M, Unit>>, M> stateTMonad;
         private final Monad<M> internalMonad;
 
-        public CoroutineTMonad(Monad<M> internalMonad) {
-            this.stateTMonad = new StateTKind.StateTMonad<>(internalMonad);
+        public CoroutineTMonad(@NotNull final Monad<M> internalMonad) {
             this.internalMonad = internalMonad;
+            this.stateTMonad = new StateTKind.StateTMonad<>(internalMonad);
             this.contMonad = new ContTKind.ContTMonad<>(stateTMonad);
         }
 
@@ -74,8 +80,6 @@ class CoroutineTKind<R, M extends Monad.mu, A>
         public @NotNull <A> App<CoroutineTKind.mu<R, ContTKind.mu<R, StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>>>, A> pure(
                 @NotNull final A a
         ) {
-//            return new CoroutineTKind<>(r -> r.apply(a));
-
             final var ma = stateTMonad.pure(a);
             return new CoroutineTKind<>(c -> stateTMonad.flatMap(ma, c));
         }
@@ -135,7 +139,7 @@ class CoroutineTKind<R, M extends Monad.mu, A>
 
                         final var first = new CoroutineTKind<>(cors.get(0));
 
-                        System.out.println("Dequeue size is " + rest.size());
+//                        System.out.println("Dequeue size is " + rest.size());
 
                         return followBy(putCCs(rest), first);
                     }
@@ -150,7 +154,7 @@ class CoroutineTKind<R, M extends Monad.mu, A>
             final var kind = flatMap(getCCs(),
                     cors -> {
                         cors.add(cor);
-                        System.out.println("Enqueue size is " + cors.size());
+//                        System.out.println("Enqueue size is " + cors.size());
                         return putCCs(cors);
                     });
             return CoroutineTKind.narrow(kind);
@@ -185,7 +189,6 @@ class CoroutineTKind<R, M extends Monad.mu, A>
             System.out.println("Start exhaust");
             final var kind = flatMap(getCCs(),
                     ccs -> {
-//                        System.out.println("exhaust ccs.size() " + ccs.size());
                         if (ccs.size() > 0) return followBy(yieldCo(), exhaust());
                         else return pure(Unit.UNIT);
                     });
@@ -196,7 +199,8 @@ class CoroutineTKind<R, M extends Monad.mu, A>
         public App<M, R> runCoroutine(@NotNull final CoroutineTKind<R, M, R> cor) {
             System.out.println("run coroutine");
 //            final CoroutineTKind<R, M, R> myCor = CoroutineTKind.narrow(discardRight(cor, exhaust()));
-            final CoroutineTKind<R, M, R> myCor = CoroutineTKind.narrow(discardRight(cor, this::exhaust));
+//            final CoroutineTKind<R, M, R> myCor = CoroutineTKind.narrow(discardRight(cor, this::exhaust));
+            final CoroutineTKind<R, M, R> myCor = cor;
 //            final Function<
 //                    ? super @NotNull Supplier<App<CoroutineTKind.mu<R, ContTKind.mu<R, StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>>>, Unit>>,
 //                    ? extends @NotNull App<CoroutineTKind.mu<R, ContTKind.mu<R, StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>>>, R>> function = this.discardRight(cor);
@@ -233,6 +237,69 @@ class CoroutineTKind<R, M extends Monad.mu, A>
                         return aToRbToRa.apply(fabr).getDelegate().apply(ar);
                     }
             );
+        }
+
+        @Override
+        public @NotNull <A> App<CoroutineTKind.mu<R, ContTKind.mu<R, StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>>>, A> lift(
+                @NotNull final App<M, A> m
+        ) {
+            final var lift = contMonad.lift(new StateTKind<>(
+                    s -> internalMonad.flatMap(m,
+                            x -> internalMonad.pure(new StateT.Result<>(x, s))
+                    )
+            ));
+            return new CoroutineTKind<>(ContTKind.narrow(lift).getDelegate()::apply);
+        }
+    }
+}
+
+class Writer<A> {
+    private final String log;
+    private final A value;
+
+    Writer(@NotNull final String log, @NotNull final A value) {
+        this.log = log;
+        this.value = value;
+    }
+
+    public String getLog() { return log; }
+    public A getValue() { return value; }
+
+    @Override
+    public String toString() {
+        return "(" + log + ", " + value + ")";
+    }
+}
+
+class WriterK<A> implements App<WriterK.mu, A> {
+    private final Writer<A> delegate;
+
+    WriterK(@NotNull final Writer<A> delegate) { this.delegate = delegate; }
+
+    public Writer<A> getDelegate() { return delegate; }
+    public static<A> WriterK<A> narrow(@NotNull final App<WriterK.mu, A> kind) { return (WriterK<A>) kind; }
+
+    public enum mu implements Monad.mu {}
+
+    public enum WriterMonad implements Monad<WriterK.mu> {
+        INSTANCE;
+
+        @Override
+        public @NotNull <A> App<WriterK.mu, A> pure(@NotNull final A a) { return new WriterK<>(new Writer<>("", a)); }
+
+        @Override
+        public @NotNull <A, B> App<WriterK.mu, B> flatMap(
+                @NotNull final App<WriterK.mu, A> ma,
+                @NotNull final Function<@NotNull A, ? extends @NotNull App<WriterK.mu, B>> aToMb
+        ) {
+            final var wa = narrow(ma).getDelegate();
+            final var wb = narrow(aToMb.apply(wa.getValue())).getDelegate();
+
+            return new WriterK<>(new Writer<>(wa.getLog() + wb.getLog(), wb.getValue()));
+        }
+
+        public App<WriterK.mu, Unit> tell(@NotNull final String log) {
+            return new WriterK<>(new Writer<>(log, Unit.UNIT));
         }
     }
 }
