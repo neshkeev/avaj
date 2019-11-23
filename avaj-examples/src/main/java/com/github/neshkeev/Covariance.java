@@ -121,7 +121,7 @@ class IdKind<A> implements Kind<IdKind.mu, A> {
 
     public static<A> IdKind<? extends A> narrow(@NotNull final Kind<? extends IdKind.mu, ? extends A> kind) { return (IdKind<? extends A>) kind; }
 
-    public interface mu<T> extends Applicative.mu {}
+    public interface mu extends Applicative.mu {}
 
     public enum IdFunctor implements Applicative<mu> {
         INSTANCE;

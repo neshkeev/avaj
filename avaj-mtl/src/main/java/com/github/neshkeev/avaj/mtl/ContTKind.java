@@ -1,57 +1,58 @@
 package com.github.neshkeev.avaj.mtl;
 
 import com.github.neshkeev.avaj.App;
-import com.github.neshkeev.avaj.typeclasses.Monad;
-import com.github.neshkeev.avaj.typeclasses.MonadTrans;
+import com.github.neshkeev.avaj.typeclasses.cov.Monad;
+import com.github.neshkeev.avaj.typeclasses.cov.MonadTrans;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
 
 public class ContTKind<R, M extends Monad.mu, A> implements App<ContTKind.mu<R, M>, A> {
+
     private final ContT<R, M, A> delegate;
 
-    public ContTKind(@NotNull final ContT<R, M, A> delegate) {
-        this.delegate = delegate;
-    }
+    public ContTKind(@NotNull final ContT<R, M, A> delegate) { this.delegate = delegate; }
+
+    public ContT<R, M, A> getDelegate() { return delegate; }
 
     @NotNull
-    public ContT<R, M, A> getDelegate() {
-        return delegate;
-    }
-
-    @NotNull
-    public static<R, M extends Monad.mu, A> ContTKind<R, M, A> narrow(@NotNull final App<ContTKind.mu<R, M>, A> kind) {
+    public static<R, M extends Monad.mu, A> ContTKind<R, M, A> narrow(
+            @NotNull final App<? extends ContTKind.mu<R, M>, A> kind
+    ) {
         return (ContTKind<R, M, A>) kind;
     }
 
     public interface mu<R, M extends Monad.mu> extends Monad.mu { }
 
-    public static class ContTMonad<R, M extends Monad.mu> implements Monad<mu<R, M>>, MonadTrans<mu<R, M>, M> {
+    public static class ContTMonad<R, M extends Monad.mu> implements Monad<mu<R, M>>, MonadTrans<M> {
         private final Monad<M> monad;
 
         public Monad<M> getMonad() {
             return monad;
         }
 
-        public ContTMonad(@NotNull final Monad<M> monad) {
+        public ContTMonad(Monad<M> monad) {
             this.monad = monad;
         }
 
         @NotNull
-        @Override
-        public <A> App<ContTKind.mu<R, M>, A> pure(@NotNull final A t) {
-            final App<M, A> ma = monad.pure(t);
-            return new ContTKind<>(c -> monad.flatMap(ma, c));
+        public<A> App<? extends ContTKind.mu<R, M>, A> ctor(@NotNull final ContT<R, M, A> cont) {
+            return new ContTKind<>(cont);
         }
 
-        @NotNull
         @Override
-        public <A, B> App<ContTKind.mu<R, M>, B> flatMap(
-                @NotNull final App<ContTKind.mu<R, M>, A> ma,
-                @NotNull final Function<@NotNull A, ? extends @NotNull App<ContTKind.mu<R, M>, B>> aToMb
+        public @NotNull <A> App<? extends ContTKind.mu<R, M>, A> pure(@NotNull A a) {
+            final var ma = monad.pure(a);
+            return ctor(c -> monad.flatMap(ma, c));
+        }
+
+        @Override
+        public @NotNull <A, B> App<? extends ContTKind.mu<R, M>, B> flatMap(
+                @NotNull final App<? extends ContTKind.mu<R, M>, @NotNull A> ma,
+                @NotNull final Function<? super @NotNull A, ? extends @NotNull App<? extends ContTKind.mu<R, M>, B>> aToMb
         ) {
             final ContT<R, M, B> result = brr -> {
-                final Function<A, App<M, R>> far = a -> {
+                final Function<? super A, App<? extends M, R>> far = a -> {
                     final var kcbr = ContTKind.narrow(aToMb.apply(a));
                     final var cbr = kcbr.getDelegate();
                     return cbr.apply(brr);
@@ -61,10 +62,9 @@ public class ContTKind<R, M extends Monad.mu, A> implements App<ContTKind.mu<R, 
             return new ContTKind<>(result);
         }
 
-        @NotNull
         @Override
-        public <A> App<ContTKind.mu<R, M>, A> lift(@NotNull final App<M, A> m) {
-            return new ContTKind<>(famr -> monad.flatMap(m, famr));
+        public @NotNull <A> App<ContTKind.mu<R, M>, A> lift(@NotNull App<? extends M, A> m) {
+            return new ContTKind<R, M, A>(famr -> monad.flatMap(m, famr));
         }
 
         @NotNull
@@ -84,5 +84,7 @@ public class ContTKind<R, M extends Monad.mu, A> implements App<ContTKind.mu<R, 
                     }
             );
         }
+
     }
 }
+

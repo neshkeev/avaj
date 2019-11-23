@@ -2,8 +2,8 @@ package com.github.neshkeev.avaj.mtl;
 
 import com.github.neshkeev.avaj.App;
 import com.github.neshkeev.avaj.Unit;
-import com.github.neshkeev.avaj.typeclasses.Monad;
-import com.github.neshkeev.avaj.typeclasses.MonadTrans;
+import com.github.neshkeev.avaj.typeclasses.cov.Monad;
+import com.github.neshkeev.avaj.typeclasses.cov.MonadTrans;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
@@ -19,11 +19,11 @@ public class StateTKind<S, M extends Monad.mu, A> implements App<StateTKind.mu<S
     public final StateT<S, M, A> getDelegate() { return delegate; }
 
     @NotNull
-    public static<S, M extends Monad.mu, A> StateTKind<S, M, A> narrow(@NotNull final App<mu<S, M>, A> kind) { return (StateTKind<S, M, A>) kind; }
+    public static<S, M extends Monad.mu, A> StateTKind<S, M, A> narrow(@NotNull final App<? extends mu<S, M>, A> kind) { return (StateTKind<S, M, A>) kind; }
 
     public interface mu<S, M extends Monad.mu> extends Monad.mu { }
 
-    public static class StateTMonad<S, M extends Monad.mu> implements Monad<mu<S, M>>, MonadTrans<mu<S, M>, M> {
+    public static class StateTMonad<S, M extends Monad.mu> implements Monad<mu<S, M>>, MonadTrans<M> {
 
         private final Monad<M> internalMonad;
 
@@ -44,9 +44,9 @@ public class StateTKind<S, M extends Monad.mu, A> implements App<StateTKind.mu<S
 
         @NotNull
         @Override
-        public <A, B> App<StateTKind.mu<S, M>, B> flatMap(
-                @NotNull final App<StateTKind.mu<S, M>, A> ma,
-                @NotNull final Function<@NotNull A, ? extends @NotNull App<StateTKind.mu<S, M>, B>> aToMb
+        public <A, B> App<? extends StateTKind.mu<S, M>, B> flatMap(
+                final @NotNull App<? extends StateTKind.mu<S, M>, @NotNull A> ma,
+                final @NotNull Function<? super @NotNull A, ? extends @NotNull App<? extends StateTKind.mu<S, M>, B>> aToMb
         ) {
             final StateT<S, M, B> smbStateT = s -> {
                 final var ima = StateTKind.narrow(ma).getDelegate().apply(s);
@@ -69,7 +69,7 @@ public class StateTKind<S, M extends Monad.mu, A> implements App<StateTKind.mu<S
         }
 
         @Override
-        public @NotNull <A> App<StateTKind.mu<S, M>, A> lift(@NotNull final App<M, A> m) {
+        public @NotNull <A> App<? extends mu, A> lift(@NotNull App<? extends M, A> m) {
             return null;
         }
     }
