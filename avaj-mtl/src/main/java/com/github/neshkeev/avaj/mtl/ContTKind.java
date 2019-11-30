@@ -59,30 +59,32 @@ public class ContTKind<R, M extends Monad.mu, A> implements App<ContTKind.mu<R, 
                 };
                 return ContTKind.narrow(ma).getDelegate().apply(far);
             };
-            return new ContTKind<>(result);
+            return ctor(result);
         }
 
         @Override
-        public @NotNull <A> App<ContTKind.mu<R, M>, A> lift(@NotNull App<? extends M, A> m) {
-            return new ContTKind<R, M, A>(famr -> monad.flatMap(m, famr));
+        public @NotNull <A> App<? extends ContTKind.mu<R, M>, A> lift(@NotNull App<? extends M, A> m) {
+//            return new ContTKind<R, M, A>(famr -> monad.flatMap(m, famr));
+            return ctor(famr -> monad.flatMap(m, famr));
         }
 
         @NotNull
-        public static <R, M extends Monad.mu, A, B> ContTKind<R, M, A> callCC(
+        public <A, B> App<? extends ContTKind.mu<R, M>, A> callCC(
                 @NotNull final Function<
                         @NotNull Function<
                                 ? super @NotNull A,
-                                ? extends @NotNull ContTKind<R, M, B>>,
-                        ? extends @NotNull ContTKind<R, M, A>> aToRbToRa
+                                ? extends @NotNull App<? extends ContTKind.mu<R, M>, B>>,
+                        ? extends @NotNull App<? extends ContTKind.mu<R, M>, A>> aToRbToRa
         ) {
-            return new ContTKind<>(
+            final App<? extends ContTKind.mu<R, M>, A> rmaContTKind = ctor(
                     ar -> {
-                        final Function<? super @NotNull A, ? extends @NotNull ContTKind<R, M, B>> fabr =
-                                a -> new ContTKind<>(br -> ar.apply(a));
+                        final Function<? super @NotNull A, ? extends @NotNull App<? extends ContTKind.mu<R, M>, B>> fabr =
+                                a -> ctor(br -> ar.apply(a));
 
-                        return aToRbToRa.apply(fabr).getDelegate().apply(ar);
+                        return narrow(aToRbToRa.apply(fabr)).getDelegate().apply(ar);
                     }
             );
+            return rmaContTKind;
         }
 
     }

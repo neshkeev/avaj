@@ -3,6 +3,7 @@ package com.github.neshkeev.avaj.typeclasses.cov;
 import com.github.neshkeev.avaj.App;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.function.Function;
 import java.util.function.Supplier;
 

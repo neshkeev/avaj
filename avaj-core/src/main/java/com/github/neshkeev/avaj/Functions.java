@@ -3,6 +3,7 @@ package com.github.neshkeev.avaj;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public final class Functions {
@@ -28,4 +29,8 @@ public final class Functions {
         return (b, a) -> from.apply(a, b);
     }
 
+    public static<A> A alter(@NotNull final A entity, Consumer<A> effect) {
+        effect.accept(entity);
+        return entity;
+    }
 }
