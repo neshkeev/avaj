@@ -35,15 +35,10 @@ public class ContTKind<R, M extends Monad.mu, A> implements App<ContTKind.mu<R, 
             this.monad = monad;
         }
 
-        @NotNull
-        public<A> App<? extends ContTKind.mu<R, M>, A> ctor(@NotNull final ContT<R, M, A> cont) {
-            return new ContTKind<>(cont);
-        }
-
         @Override
         public @NotNull <A> App<? extends ContTKind.mu<R, M>, A> pure(@NotNull A a) {
             final var ma = monad.pure(a);
-            return ctor(c -> monad.flatMap(ma, c));
+            return new ContTKind<>(c -> monad.flatMap(ma, c));
         }
 
         @Override
@@ -59,32 +54,30 @@ public class ContTKind<R, M extends Monad.mu, A> implements App<ContTKind.mu<R, 
                 };
                 return ContTKind.narrow(ma).getDelegate().apply(far);
             };
-            return ctor(result);
+            return new ContTKind<>(result);
         }
 
         @Override
         public @NotNull <A> App<? extends ContTKind.mu<R, M>, A> lift(@NotNull App<? extends M, A> m) {
-//            return new ContTKind<R, M, A>(famr -> monad.flatMap(m, famr));
-            return ctor(famr -> monad.flatMap(m, famr));
+            return new ContTKind<>(famr -> monad.flatMap(m, famr));
         }
 
         @NotNull
-        public <A, B> App<? extends ContTKind.mu<R, M>, A> callCC(
+        public <A, B> ContTKind<R, M, A> callCC(
                 @NotNull final Function<
                         @NotNull Function<
                                 ? super @NotNull A,
                                 ? extends @NotNull App<? extends ContTKind.mu<R, M>, B>>,
                         ? extends @NotNull App<? extends ContTKind.mu<R, M>, A>> aToRbToRa
         ) {
-            final App<? extends ContTKind.mu<R, M>, A> rmaContTKind = ctor(
+            return new ContTKind<>(
                     ar -> {
                         final Function<? super @NotNull A, ? extends @NotNull App<? extends ContTKind.mu<R, M>, B>> fabr =
-                                a -> ctor(br -> ar.apply(a));
+                                a -> new ContTKind<>(br -> ar.apply(a));
 
                         return narrow(aToRbToRa.apply(fabr)).getDelegate().apply(ar);
                     }
             );
-            return rmaContTKind;
         }
 
     }

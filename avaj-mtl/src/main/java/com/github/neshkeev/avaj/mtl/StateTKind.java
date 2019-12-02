@@ -28,7 +28,7 @@ public class StateTKind<S, M extends Monad.mu, A> implements App<StateTKind.mu<S
         private final Monad<M> internalMonad;
 
         @NotNull
-        public static<S, M extends Monad.mu> StateTMonad<S, M> narrow(Monad<StateTKind.mu<S, M>> monad) {
+        public static<S, M extends Monad.mu> StateTMonad<S, M> narrow(Monad<? extends StateTKind.mu<S, M>> monad) {
             return (StateTMonad<S, M>) monad;
         }
 
@@ -69,8 +69,11 @@ public class StateTKind<S, M extends Monad.mu, A> implements App<StateTKind.mu<S
         }
 
         @Override
-        public @NotNull <A> App<? extends mu, A> lift(@NotNull App<? extends M, A> m) {
-            return null;
+        public @NotNull <A> StateTKind<S, M, A> lift(@NotNull App<? extends M, A> m) {
+            return new StateTKind<>(
+                    s -> internalMonad.flatMap(m,
+                    x -> internalMonad.pure(new StateT.Result<>(x, s))
+            ));
         }
     }
 }
