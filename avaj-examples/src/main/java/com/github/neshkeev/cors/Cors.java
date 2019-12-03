@@ -12,8 +12,10 @@ import com.github.neshkeev.avaj.typeclasses.cov.MonadTrans;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.github.neshkeev.avaj.Functions.alter;
@@ -23,25 +25,19 @@ public class Cors {
         final var w = WriterK.WriterMonad.INSTANCE;
         final var m = new CoroutineTKind.CoroutineTMonad<Unit, WriterK.mu>(w);
 
-        final var wHello = w.tell("Hello");
-        final var myHello = m.flatMap(m.lift(wHello),
-                x -> m.flatMap(
-                m.yieldCo(),
-                y -> m.flatMap(m.lift(w.tell(", ")), z ->
-                m.yieldCo()
-        )));
-        final var fHello = m.forkCo(myHello);
+        final var unitApp = m.runCoroutine(
+                m.chainMany(
+                        m.forkCo(m.replicate_(1, printOne(m, w, "3"))),
+                        m.forkCo(m.replicate_(3, printOne(m, w, "4"))),
+                        m.replicate_(1, printOne(m, w, "2"))
+                ));
+        System.out.println(WriterK.narrow(unitApp).getDelegate());
+    }
 
-        final var wWorld = w.tell("World");
-        final var myWorld = m.flatMap(m.lift(wWorld), x -> m.yieldCo());
-
-        final var wri = m.runCoroutine(
-
-        m.chain(
-                m.forkCo(fHello),
-                myWorld
-        ));
-        System.out.println(WriterK.narrow(wri).getDelegate());
+    private static App<? extends ContTKind.mu<Unit, StateTKind.mu<List<CoroutineT<Unit, WriterK.mu, Unit>>, WriterK.mu>>, Unit> printOne(
+            CoroutineTKind.CoroutineTMonad<Unit, WriterK.mu> m, WriterK.WriterMonad w, String log
+    ) {
+        return m.chain(m.lift(w.tell(log)), m.yieldCo());
     }
 }
 
@@ -170,7 +166,9 @@ class CoroutineTKind<R, M extends Monad.mu, A> extends ContTKind<R, StateTKind.m
 
         // fork :: Monad m => CoroutineT r m () -> CoroutineT r m ()
         @NotNull
-        public CoroutineTKind<R, M, Unit> forkCo(@NotNull final CoroutineTKind<R, M, Unit> cor) {
+        public CoroutineTKind<R, M, Unit> forkCo(
+                @NotNull final App<? extends ContTKind.mu<R, StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>>, Unit> cor
+        ) {
             final var result = contMonad.<Unit, Unit>callCC(
                     k -> {
                         final var delegate = narrowCoroutineT(k.apply(Unit.UNIT)).getDelegate();
@@ -187,10 +185,10 @@ class CoroutineTKind<R, M extends Monad.mu, A> extends ContTKind<R, StateTKind.m
         @NotNull
         public CoroutineTKind<R, M, Unit> exhaust() {
             final var kind = flatMap(getCCs(),
-                    ccs -> {
-                        if (ccs.size() > 0) return chain(yieldCo(), exhaust());
-                        else return pure(Unit.UNIT);
-                    });
+                    ccs -> ccs.isEmpty()
+                            ? pure(Unit.UNIT)
+                            : chain(yieldCo(), this::exhaust)
+            );
             return narrowCoroutineT(kind);
         }
 
@@ -212,6 +210,7 @@ class CoroutineTKind<R, M extends Monad.mu, A> extends ContTKind<R, StateTKind.m
                             .apply(st.getDelegate().apply(new ArrayList<>()));
 
             final var coroutine = discardRight(cor, this::exhaust);
+//            final var coroutine = cor;
 
             return third.compose(second).apply(coroutine);
         }

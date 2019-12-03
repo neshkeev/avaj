@@ -65,5 +65,11 @@ public interface Monad<M extends Monad.mu> extends Applicative<M> {
                 ));
     }
 
+    default <A> App<? extends M, A> chainMany(@NotNull final App<? extends M, A> head, @NotNull final App<? extends M, A>... tail) {
+        if (tail.length == 0) return head;
+
+        return Arrays.stream(tail).reduce(head, this::chain);
+    }
+
     interface mu extends Applicative.mu { }
 }
