@@ -4,11 +4,11 @@ import com.github.neshkeev.avaj.App;
 import com.github.neshkeev.avaj.Unit;
 import com.github.neshkeev.avaj.mtl.ContT;
 import com.github.neshkeev.avaj.mtl.ContTKind;
-import com.github.neshkeev.avaj.mtl.StateT;
+import com.github.neshkeev.avaj.mtl.StateT.Result;
 import com.github.neshkeev.avaj.mtl.StateTKind;
 import com.github.neshkeev.avaj.mtl.StateTKind.StateTMonad;
-import com.github.neshkeev.avaj.typeclasses.cov.MonadTrans;
 import com.github.neshkeev.avaj.typeclasses.cov.Monad;
+import com.github.neshkeev.avaj.typeclasses.cov.MonadTrans;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -95,7 +95,7 @@ class CoroutineTKind<R, M extends Monad.mu, A> extends ContTKind<R, StateTKind.m
                             StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>,
                             List<CoroutineT<R, M, Unit>>
                     > narrow(contMonad.lift(stateTMonad.get()));
-            return CoroutineTKind.narrowCoroutineT(cont);
+            return narrowCoroutineT(cont);
         }
 
         // putCCs :: Monad m => [CoroutineT r m ()] -> CoroutineT r m ()
@@ -109,7 +109,7 @@ class CoroutineTKind<R, M extends Monad.mu, A> extends ContTKind<R, StateTKind.m
                             StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>,
                             Unit
                     > narrow(contMonad.lift(stateTMonad.put(cors)));
-            return CoroutineTKind.narrowCoroutineT(cont);
+            return narrowCoroutineT(cont);
         }
 
         // dequeue :: Monad m => CoroutineT r m ()
@@ -152,7 +152,7 @@ class CoroutineTKind<R, M extends Monad.mu, A> extends ContTKind<R, StateTKind.m
         @NotNull
         public CoroutineTKind<R, M, Unit> yieldCo() {
             final var result = contMonad.<Unit, Unit>callCC(this::yieldInCallCC);
-            return CoroutineTKind.narrowCoroutineT(result);
+            return narrowCoroutineT(result);
         }
 
         @NotNull
@@ -180,31 +180,46 @@ class CoroutineTKind<R, M extends Monad.mu, A> extends ContTKind<R, StateTKind.m
                         return chain(chain(enqueue, cor), dequeue());
                     }
             );
-            return CoroutineTKind.narrowCoroutineT(result);
+            return narrowCoroutineT(result);
+        }
+
+        // exhaust :: Monad m => CoroutineT r m ()
+        @NotNull
+        public CoroutineTKind<R, M, Unit> exhaust() {
+            final var kind = flatMap(getCCs(),
+                    ccs -> {
+                        if (ccs.size() > 0) return chain(yieldCo(), exhaust());
+                        else return pure(Unit.UNIT);
+                    });
+            return narrowCoroutineT(kind);
         }
 
         // runCoroutineT :: Monad m => CoroutineT r m r -> m r
         public App<? extends M, R> runCoroutine(
                 @NotNull final App<? extends ContTKind.mu<R, StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>>, R> cor
         ) {
-            final Function<CoroutineTKind<R, M, R>, StateTKind<List<CoroutineT<R, M, Unit>>, M, R> > second =
-                    ctk -> StateTKind.narrow(ctk.getDelegate().apply(stateTMonad::pure));
+            final Function<App<? extends ContTKind.mu<R, StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>>, R>, CoroutineTKind<R, M, R>> toCoroutineTKind = CoroutineTKind::narrowCoroutineT;
 
-            final Function<StateT.Result<List<CoroutineT<R, M, Unit>>, R>, R> valueProjection = StateT.Result::getValue;
+            final Function<App<? extends ContTKind.mu<R, StateTKind.mu<List<CoroutineT<R, M, Unit>>, M>>, R>, StateTKind<List<CoroutineT<R, M, Unit>>, M, R> > second =
+                    toCoroutineTKind
+                            .andThen(CoroutineTKind::getDelegate)
+                            .andThen(e -> e.apply(stateTMonad::pure))
+                            .andThen(StateTKind::narrow);
 
             final Function<StateTKind<List<CoroutineT<R, M, Unit>>, M, R>, App<? extends M, R> > third =
                     st -> internalMonad
-                            .map(valueProjection)
+                            .map(Result<List<CoroutineT<R, M, Unit>>, R>::getValue)
                             .apply(st.getDelegate().apply(new ArrayList<>()));
 
-            return third.compose(second).apply(CoroutineTKind.narrowCoroutineT(cor));
+            final var coroutine = discardRight(cor, this::exhaust);
+
+            return third.compose(second).apply(coroutine);
         }
 
         @Override
         public @NotNull <A> CoroutineTKind<R, M, A> lift(@NotNull final App<? extends M, A> m) {
-            final var lift = contMonad.
-                    lift(stateTMonad.lift(m));
-            return CoroutineTKind.narrowCoroutineT(lift);
+            final var lift = contMonad.lift(stateTMonad.lift(m));
+            return narrowCoroutineT(lift);
         }
     }
 }

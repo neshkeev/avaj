@@ -29,7 +29,8 @@ public final class Functions {
         return (b, a) -> from.apply(a, b);
     }
 
-    public static<A> A alter(@NotNull final A entity, Consumer<A> effect) {
+    @NotNull
+    public static<A> A alter(@NotNull final A entity, @NotNull final Consumer<A> effect) {
         effect.accept(entity);
         return entity;
     }
