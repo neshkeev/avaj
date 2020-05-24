@@ -4,7 +4,6 @@ import com.github.neshkeev.avaj.App;
 import com.github.neshkeev.avaj.typeclasses.Monad;
 import org.jetbrains.annotations.NotNull;
 
-import java.nio.file.WatchEvent;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -18,11 +17,10 @@ public class Parser {
                 c2 -> pkMonad.pure(c1 + "" + c2))
         );
 
-        final ParserKind<? extends String> narrow = ParserKind.narrow(kind);
+        final ParserKind<? extends @NotNull String> narrow = ParserKind.narrow(kind);
         Stream.of("", null, "12", "1", "123")
                 .map(narrow.getDelegate())
                 .forEach(System.out::println);
-                ;
 
         final var kind1 = pkMonad.flatMap(digit(),
                 c1 -> pkMonad.flatMap(digit(),
@@ -34,8 +32,8 @@ public class Parser {
                 .forEach(System.out::println);
 
     }
-    public static ParserKind<Character> anyChr() {
-        final Function<? super String, ? extends Optional<? extends Result<? extends Character>>> prs =
+    public static ParserKind<@NotNull Character> anyChr() {
+        final Function<? super String, ? extends Optional<? extends Result<? extends @NotNull Character>>> prs =
                 s -> {
                     if (s == null || s.isBlank()) return Optional.empty();
                     else return Optional.of(new Result<>(s.charAt(0), s.substring(1)));
@@ -43,7 +41,7 @@ public class Parser {
         return new ParserKind<>(prs);
     }
 
-    public static ParserKind<Integer> digit() {
+    public static ParserKind<@NotNull Integer> digit() {
         final var parserMonad = ParserKind.Instance.INSTANCE;
 
         final var kind = parserMonad.flatMap(anyChr(),
@@ -57,19 +55,21 @@ public class Parser {
 }
 
 
-class Result<T> {
-    private final T res;
-    private final String rest;
+class Result<T extends @NotNull Object> {
+    private final @NotNull T res;
+    private final @NotNull String rest;
 
-    Result(T res, String rest) {
+    Result(final T res, @NotNull final String rest) {
         this.res = res;
         this.rest = rest;
     }
 
+    @NotNull
     public T getRes() {
         return res;
     }
 
+    @NotNull
     public String getRest() {
         return rest;
     }
@@ -80,44 +80,41 @@ class Result<T> {
     }
 }
 
-class ParserKind<T> implements App<ParserKind.mu, T> {
-    private final Function<? super String, ? extends Optional<? extends Result<? extends T>>> delegate;
+class ParserKind<T extends @NotNull Object> implements App<ParserKind.@NotNull mu, T> {
 
-    ParserKind(final Function<? super String, ? extends Optional<? extends Result<? extends T>>> delegate) {
+    @NotNull
+    private final Function<? super @NotNull String, ? extends Optional<? extends Result<? extends T>>> delegate;
+
+    ParserKind(@NotNull final Function<? super @NotNull String, ? extends Optional<? extends Result<? extends T>>> delegate) {
         this.delegate = delegate;
     }
 
-    public static <T> ParserKind<T> narrow(App<ParserKind.mu, T> kind) {
-        return (ParserKind<T>) kind;
-    }
+    public static <T extends @NotNull Object> ParserKind<T> narrow(App<ParserKind.@NotNull mu, T> kind) { return (ParserKind<T>) kind; }
 
-    public Function<? super String, ? extends Optional<? extends Result<? extends T>>> getDelegate() {
-        return delegate;
-    }
+    @NotNull
+    public Function<? super String, ? extends Optional<? extends Result<? extends T>>> getDelegate() { return delegate; }
 
     public static final class mu implements Monad.mu { }
 
-    public enum Instance implements Monad<mu> {
+    public enum Instance implements Monad<@NotNull mu> {
         INSTANCE;
 
-        @NotNull
         @Override
-        public <A> App<ParserKind.mu, A> pure(@NotNull final A a) {
+        public <A extends @NotNull Object> @NotNull App<ParserKind.@NotNull mu, A> pure(final A a) {
             final Function<? super String, ? extends Optional<? extends Result<? extends A>>> parser =
                     s -> Optional.of(new Result<>(a, s));
 
             return new ParserKind<>(parser);
         }
 
-        @NotNull
         @Override
-        public <A, B> App<ParserKind.mu, B> flatMap(
-                @NotNull final App<ParserKind.mu, A> ma,
-                @NotNull final Function<@NotNull A, ? extends @NotNull App<ParserKind.mu, B>> aToMb
+        public <A extends @NotNull Object, B extends @NotNull Object> @NotNull App<ParserKind.@NotNull mu, B> flatMap(
+                @NotNull final App<ParserKind.@NotNull mu, A> ma,
+                @NotNull final Function<? super A, ? extends @NotNull App<ParserKind.@NotNull mu, B>> aToMb
         ) {
             final Function<? super String, ? extends Optional<? extends Result<? extends A>>> fst = ParserKind.narrow(ma).getDelegate();
 
-            return new ParserKind<B>(
+            return new ParserKind<>(
                     s -> {
                         final Optional<? extends Result<? extends A>> fstR = fst.apply(s);
 
@@ -126,9 +123,7 @@ class ParserKind<T> implements App<ParserKind.mu, T> {
                                     final A res = result.getRes();
                                     final String rest = result.getRest();
 
-                                    final Optional<? extends Result<? extends B>> result1 =
-                                            narrow(aToMb.apply(res)).getDelegate().apply(rest);
-                                    return result1;
+                                    return narrow(aToMb.apply(res)).getDelegate().apply(rest);
                                 }
                         );
                     }

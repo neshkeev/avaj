@@ -1,6 +1,8 @@
 package com.github.neshkeev.avaj.data;
 
-public abstract class Either<L, R> {
+import org.jetbrains.annotations.NotNull;
+
+public abstract class Either<L extends @NotNull Object, R extends @NotNull Object> {
 
     // sealed
     private Either() {}
@@ -16,7 +18,7 @@ public abstract class Either<L, R> {
     public boolean isLeft() { return !isRight(); }
     public boolean isRight() { return !isLeft(); }
 
-    public static final class Left<L, R> extends Either<L, R> {
+    public static final class Left<L extends @NotNull Object, R extends @NotNull Object> extends Either<L, R> {
         private final L value;
 
         public Left(final L value) { this.value = value; }
@@ -31,7 +33,7 @@ public abstract class Either<L, R> {
         public boolean isLeft() { return true; }
     }
 
-    public static final class Right<L, R> extends Either<L, R> {
+    public static final class Right<L extends @NotNull Object, R extends @NotNull Object> extends Either<L, R> {
         private final R value;
 
         public Right(final R value) { this.value = value; }

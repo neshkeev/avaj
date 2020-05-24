@@ -7,6 +7,7 @@ import com.github.neshkeev.avaj.mtl.Id;
 import com.github.neshkeev.avaj.mtl.Reader;
 import com.github.neshkeev.avaj.mtl.ReaderT;
 import com.github.neshkeev.avaj.mtl.ReaderTKind;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.List;
@@ -29,24 +30,23 @@ public class ContPlayground {
         System.out.println(Checkpointed.<Integer>runCheckpointed(a -> a < 10).apply(addTens(1)));
     }
 
-    public static Checkpointed<Integer> addTens(Integer start) {
-        final var contMonad = new ContKind.Instance<Integer>();
+    public static Checkpointed<@NotNull Integer> addTens(Integer start) {
+        final var contMonad = new ContKind.Instance<@NotNull Integer>();
 
         return checkpoint -> {
             final var kind = contMonad.flatMap(checkpoint.apply(start),
                     x1 -> contMonad.flatMap(checkpoint.apply(x1 + 10),
-                            x2 -> contMonad.flatMap(checkpoint.apply(x2 + 10),
-                                    x3 -> contMonad.flatMap(checkpoint.apply(x3 + 10),
-                                            x4 -> contMonad.pure(x4 + 10)
-                                    ))));
+                    x2 -> contMonad.flatMap(checkpoint.apply(x2 + 10),
+                    x3 -> contMonad.flatMap(checkpoint.apply(x3 + 10),
+                    x4 -> contMonad.pure(x4 + 10)
+            ))));
 
-            final var res = ContKind.narrow(kind);
-            return res;
+            return ContKind.narrow(kind);
         };
     }
 
     private static void ainallCC() {
-        final var contMonad = new ContKind.Instance<Boolean>();
+        final var contMonad = new ContKind.Instance<@NotNull Boolean>();
 
         final var kind = withCallCC(contMonad, -5);
         System.out.println(kind.getDelegate().apply(e -> e % 2 == 0));
@@ -54,17 +54,19 @@ public class ContPlayground {
         final var kind2 = withCallCC(contMonad, 9);
         System.out.println(kind2.getDelegate().apply(e -> e % 2 == 0));
 
-        final var mnd2 = new ContKind.Instance<Integer>();
+        final var mnd2 = new ContKind.Instance<@NotNull Integer>();
 
         final var kind3 = withCallCC(mnd2, 15);
         System.out.println(kind3.getDelegate().apply(e -> e));
 
-        final var mnd3 = new ContKind.Instance<List<Integer>>();
+        final var mnd3 = new ContKind.Instance<@NotNull List<Integer>>();
         final var kind4 = withCallCC(mnd3, -1);
         System.out.println(kind4.getDelegate().apply(List::of));
     }
 
-    public static <R> ContKind<R, Integer> withCallCC(ContKind.Instance<R> contMonad, int val) {
+    public static <R extends @NotNull Object> ContKind<R, @NotNull Integer> withCallCC(
+            ContKind.Instance<R> contMonad, int val
+    ) {
         final var five = contMonad.pure(val);
 
         return ContKind.Instance.<Integer, Integer, R>callCC(
@@ -77,10 +79,10 @@ public class ContPlayground {
     }
 
     private static void ontList() {
-        final var contMonad = new ContKind.Instance<List<Integer>>();
+        final var contMonad = new ContKind.Instance<@NotNull List<Integer>>();
         final var five = contMonad.pure(5);
 
-        final var const4 = new ContKind<List<Integer>, Integer>(
+        final var const4 = new ContKind<@NotNull List<Integer>, @NotNull Integer>(
                 c -> Stream.of(c.apply(4), c.apply(5), c.apply(4), c.apply(5))
                         .flatMap(Collection::stream)
                         .collect(Collectors.toList())
@@ -94,7 +96,7 @@ public class ContPlayground {
     }
 
     private static void allCC() {
-        final var contMonad = new ContKind.Instance<Integer>();
+        final var contMonad = new ContKind.Instance<@NotNull Integer>();
         final var five = contMonad.pure(15);
         final var kind1 = ContKind.Instance.<Integer, Integer, Integer>callCC(
                 k -> {
@@ -114,17 +116,17 @@ public class ContPlayground {
     }
 
     private static void withMethodGen() {
-        final var contMonad = new ContKind.Instance<Integer>();
+        final var contMonad = new ContKind.Instance<@NotNull Integer>();
         System.out.println(ff(contMonad).getDelegate().apply(Function.identity()));
 
-        final var contMonad1 = new ContKind.Instance<String>();
+        final var contMonad1 = new ContKind.Instance<@NotNull String>();
         System.out.println(ff(contMonad1).getDelegate().apply(Object::toString));
 
-        final var contMonad2 = new ContKind.Instance<List<Integer>>();
+        final var contMonad2 = new ContKind.Instance<@NotNull List<Integer>>();
         System.out.println(ff(contMonad2).getDelegate().apply(List::of));
     }
 
-    public static <R> ContKind<R, Integer> ff(ContKind.Instance<R> contMonad) {
+    public static <R extends @NotNull Object> ContKind<R, @NotNull Integer> ff(ContKind.Instance<R> contMonad) {
         final var pure5 = contMonad.pure(5);
 
         final var muIntegerKind = contMonad.flatMap(pure5,
@@ -135,7 +137,7 @@ public class ContPlayground {
     }
 
     private static void ontIntList() {
-        final var contMonad = new ContKind.Instance<Integer>();
+        final var contMonad = new ContKind.Instance<@NotNull Integer>();
         final var cont3 = contMonad.pure(3);
         final var cont5 = contMonad.pure(5);
 
@@ -146,13 +148,13 @@ public class ContPlayground {
         final var simple = ContKind.narrow(kind).getDelegate().apply(Function.identity());
         System.out.println(simple);
 
-        final Cont<List<Integer>, Integer> cont = c ->
+        final Cont<@NotNull List<Integer>, @NotNull Integer> cont = c ->
                 Stream
                         .of(c.apply(4), c.apply(5), c.apply(4), c.apply(5))
                         .flatMap(Collection::stream)
                         .collect(Collectors.toList());
 
-        final var contMonad1 = new ContKind.Instance<List<Integer>>();
+        final var contMonad1 = new ContKind.Instance<@NotNull List<Integer>>();
         final var cont31 = contMonad1.pure(3);
         final var cont51 = contMonad1.pure(5);
 
@@ -254,7 +256,7 @@ public class ContPlayground {
 
     private static void eader() {
         final var idMonad = Id.IdMonad.INSTANCE;
-        final var rm = new Reader.ReaderMonad<Integer>();
+        final var rm = new Reader.ReaderMonad<@NotNull Integer>();
         final var kind = rm.flatMap(rm.pure("hello"),
             h -> rm.flatMap(rm.lift(idMonad.pure("World")),
             w -> rm.flatMap(rm.asks(n -> n * 2),
@@ -269,12 +271,12 @@ public class ContPlayground {
 
     private static void rans() {
         final var idMonad = Id.IdMonad.INSTANCE;
-        final ReaderTKind.ReaderTMonad<Integer, Id.mu> readerMonadT = new ReaderTKind.ReaderTMonad<Integer, Id.mu>(idMonad);
+        final ReaderTKind.ReaderTMonad<@NotNull Integer, Id.@NotNull mu> readerMonadT = new ReaderTKind.ReaderTMonad<>(idMonad);
         final var greets = new Id<>("World");
-        final ReaderT<Integer, Id.mu, String> gen = r -> greets;
+        final ReaderT<@NotNull Integer, Id.@NotNull mu, @NotNull String> gen = r -> greets;
         final var start = new ReaderTKind<>(gen);
 
-        final App<ReaderTKind.mu<Integer, Id.mu>, String> kind = readerMonadT.flatMap(start,
+        final App<ReaderTKind.@NotNull mu<@NotNull Integer, Id.@NotNull mu>, @NotNull String> kind = readerMonadT.flatMap(start,
                 a -> readerMonadT.flatMap(readerMonadT.lift(idMonad.pure("World")),
                 b -> readerMonadT.flatMap(readerMonadT.ask(),
                 n -> readerMonadT.pure((a + ", " + b + "!\n").repeat(n))
@@ -287,9 +289,9 @@ public class ContPlayground {
     }
 }
 
-interface Checkpointed<A> extends Function<Function<A, ContKind<A, A>>, ContKind<A, A>> {
+interface Checkpointed<A extends @NotNull Object> extends Function<Function<A, ContKind<A, A>>, ContKind<A, A>> {
 
-    static <A> Function<Checkpointed<A>, A> runCheckpointed(final Predicate<A> pred) {
+    static <A extends @NotNull Object> Function<Checkpointed<A>, A> runCheckpointed(final Predicate<A> pred) {
         final Function<A, Function<Function<A, A>, A>> evalCont =
                 a -> c -> pred.test(c.apply(a)) ? c.apply(a) : a;
 

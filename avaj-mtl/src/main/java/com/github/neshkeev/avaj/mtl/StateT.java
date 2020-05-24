@@ -1,7 +1,7 @@
 package com.github.neshkeev.avaj.mtl;
 
 import com.github.neshkeev.avaj.App;
-import com.github.neshkeev.avaj.typeclasses.cov.Monad;
+import com.github.neshkeev.avaj.typeclasses.Monad;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -9,13 +9,14 @@ import java.util.function.Function;
 
 // * -> (* -> *) -> * -> *
 // s -> m (a, s)
-public interface StateT<S, M extends Monad.mu, A> extends Function<S, App<? extends M, StateT.Result<@NotNull S, @NotNull A>>> {
+public interface StateT<S extends @NotNull Object, M extends @NotNull Object & Monad.mu, A extends @NotNull Object>
+        extends Function<S, @NotNull App<M, StateT.@NotNull Result<S, A>>> {
 
-    final class Result<S, A> {
+    final class Result<S extends @NotNull Object, A extends @NotNull Object> {
         private final A value;
         private final S state;
 
-        public Result(@NotNull final A value, @NotNull final S state) {
+        public Result(final A value, final S state) {
             this.value = value;
             this.state = state;
         }

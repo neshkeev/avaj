@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
 
-public final class Id<A> implements App<Id.mu, A> {
+public final class Id<A extends @NotNull Object> implements App<Id.@NotNull mu, A> {
     private final A value;
 
     public Id(@NotNull final A value) {
@@ -20,7 +20,7 @@ public final class Id<A> implements App<Id.mu, A> {
     }
 
     @NotNull
-    public static <A> Id<A> narrow(@NotNull final App<Id.mu, A> kind) {
+    public static <A extends @NotNull Object> Id<A> narrow(@NotNull final App<Id.@NotNull mu, A> kind) {
         return (Id<A>) kind;
     }
 
@@ -31,23 +31,21 @@ public final class Id<A> implements App<Id.mu, A> {
         return value.toString();
     }
 
-    public enum IdMonad implements com.github.neshkeev.avaj.typeclasses.Monad<mu> {
+    public enum IdMonad implements Monad<@NotNull mu> {
         INSTANCE;
 
         @NotNull
         @Override
-        public <A> App<Id.mu, A> pure(@NotNull final A a) {
+        public <A extends @NotNull Object> App<Id.@NotNull mu, A> pure(@NotNull final A a) {
             return new Id<>(a);
         }
 
-        @NotNull
         @Override
-        public <A, B> App<Id.mu, B> flatMap(
-                @NotNull final App<Id.mu, A> ma,
-                @NotNull final Function<@NotNull A, ? extends @NotNull App<Id.mu, B>> aToMb
+        public <A extends @NotNull Object, B extends @NotNull Object> @NotNull App<Id.@NotNull mu, B> flatMap(
+                @NotNull final App<Id.@NotNull mu, A> ma,
+                @NotNull final Function<? super A, ? extends @NotNull App<Id.@NotNull mu, B>> aToMb
         ) {
-            final var value = narrow(ma).getValue();
-            return aToMb.apply(value);
+            return aToMb.apply(narrow(ma).value);
         }
     }
 }

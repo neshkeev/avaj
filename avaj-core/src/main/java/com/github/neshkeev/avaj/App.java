@@ -1,3 +1,5 @@
 package com.github.neshkeev.avaj;
 
-public interface App<F extends K1, A> extends K1 { }
+import org.jetbrains.annotations.NotNull;
+
+public interface App<F extends @NotNull Object & K1, A extends @NotNull Object> extends K1 { }

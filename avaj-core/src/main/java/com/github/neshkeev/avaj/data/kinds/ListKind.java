@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public final class ListKind<T> implements App<ListKind.mu, T> {
+public final class ListKind<T extends @NotNull Object> implements App<ListKind.@NotNull mu, T> {
     private final List<T> delegate;
 
     public ListKind(@NotNull final List<T> delegate) { this.delegate = delegate; }
@@ -16,23 +16,25 @@ public final class ListKind<T> implements App<ListKind.mu, T> {
     @NotNull
     public List<T> getDelegate() { return delegate; }
 
-    public static <T> ListKind<T> narrow(App<ListKind.mu, T> kind) { return (ListKind<T>) kind; }
+    @NotNull
+    public static <T extends @NotNull Object> ListKind<T> narrow(@NotNull final App<ListKind.@NotNull mu, T> kind) {
+        return (ListKind<T>) kind;
+    }
 
     public static final class mu implements Monad.mu { }
 
-    public static class ListMonad implements Monad<ListKind.mu> {
+    public static class ListMonad implements Monad<ListKind.@NotNull mu> {
 
-        @NotNull
         @Override
-        public <A> App<ListKind.mu, A> pure(@NotNull final A a) {
+        public <A extends @NotNull Object> @NotNull App<ListKind.@NotNull mu, A> pure(A a) {
             return new ListKind<>(List.of(a));
         }
 
-        @NotNull
         @Override
-        public <A, B> App<ListKind.mu, B> flatMap(
-                @NotNull final App<ListKind.mu, A> ma,
-                @NotNull Function<@NotNull A, ? extends @NotNull App<ListKind.mu, B>> aToMb
+        public <A extends @NotNull Object, B extends @NotNull Object>
+        @NotNull App<ListKind.@NotNull mu, B> flatMap(
+                @NotNull final App<ListKind.@NotNull mu, A> ma,
+                @NotNull final Function<? super A, ? extends @NotNull App<ListKind.@NotNull mu, B>> aToMb
         ) {
             final var mas = narrow(ma).getDelegate();
             final var bs = mas.stream()
