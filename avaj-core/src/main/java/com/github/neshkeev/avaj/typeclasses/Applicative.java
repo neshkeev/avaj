@@ -2,6 +2,7 @@ package com.github.neshkeev.avaj.typeclasses;
 
 import com.github.neshkeev.avaj.App;
 import com.github.neshkeev.avaj.Functions;
+import com.github.neshkeev.avaj.Unit;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.BiFunction;
@@ -47,6 +48,10 @@ public interface Applicative<F extends @NotNull Object & Applicative.mu> extends
             @NotNull final App<F, A> fa
     ) {
         return Functions.<App<F, A>, Supplier<App<F, B>>, App<F, A>>curry(this::discardRight).apply(fa);
+    }
+
+    default @NotNull App<F, @NotNull Unit> when(boolean b, final @NotNull Supplier<@NotNull App<F, @NotNull Unit>> s) {
+        return b ? s.get() : pure(Unit.UNIT);
     }
 
     interface mu extends Functor.mu { }

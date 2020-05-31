@@ -27,11 +27,31 @@ public class ContTKind<R extends @NotNull Object, M extends @NotNull Object & Mo
 
     public interface mu<R extends @NotNull Object, M extends @NotNull Object & Monad.mu> extends Monad.mu { }
 
-    public static class ContTMonad<R extends @NotNull Object, M extends @NotNull Object & Monad.mu> implements Monad<@NotNull mu<R, M>>, MonadTrans<@NotNull mu<R, M>, M> {
-        private final Monad<M> monad;
+    public static class ContTMonad<R extends @NotNull Object, M extends @NotNull Object & Monad.mu>
+            implements MonadCont<@NotNull mu<R, M>>, MonadTrans<@NotNull mu<R, M>, M> {
 
-        public ContTMonad(Monad<M> monad) {
+        @NotNull private final Monad<M> monad;
+
+        public ContTMonad(@NotNull final Monad<M> monad) {
             this.monad = monad;
+        }
+
+        @Override
+        @NotNull
+        public <A extends @NotNull Object, B extends @NotNull Object> ContTKind<R, M, A> callCC(
+                @NotNull final Function<
+                        ? super @NotNull Function<
+                                ? super A,
+                                ? extends @NotNull App<ContTKind.@NotNull mu<R, M>, B>>,
+                        ? extends @NotNull App<ContTKind.@NotNull mu<R, M>, A>> aToMbToMa) {
+            return new ContTKind<>(
+                    ar -> {
+                        final Function<? super @NotNull A, ? extends @NotNull App<ContTKind.@NotNull mu<R, M>, B>> fabr =
+                                a -> new ContTKind<>(br -> ar.apply(a));
+
+                        return narrow(aToMbToMa.apply(fabr)).getDelegate().apply(ar);
+                    }
+            );
         }
 
         @Override
@@ -47,38 +67,19 @@ public class ContTKind<R extends @NotNull Object, M extends @NotNull Object & Mo
         ) {
             final ContT<R, M, B> result = brr -> {
                 final Function<? super A, ? extends App<M, R>> far = a -> {
-                    final var kcbr = ContTKind.narrow(aToMb.apply(a));
-                    final var cbr = kcbr.getDelegate();
+                    final ContTKind<R, M, B> kcbr = narrow(aToMb.apply(a));
+                    final ContT<R, M, B> cbr = kcbr.getDelegate();
                     return cbr.apply(brr);
                 };
-                return ContTKind.narrow(ma).getDelegate().apply(far);
+                return narrow(ma).getDelegate().apply(far);
             };
             return new ContTKind<>(result);
         }
 
         @Override
-        public <A extends @NotNull Object> @NotNull App<ContTKind.@NotNull mu<R, M>, A> lift(@NotNull final App<M, A> m) {
+        public <A extends @NotNull Object> @NotNull ContTKind<R, M, A> lift(@NotNull final App<M, A> m) {
             return new ContTKind<>(famr -> monad.flatMap(m, famr));
         }
-
-        @NotNull
-        public <A extends @NotNull Object, B extends @NotNull Object> ContTKind<R, M, A> callCC(
-                @NotNull final Function<
-                        @NotNull Function<
-                                ? super @NotNull A,
-                                ? extends @NotNull App<ContTKind.@NotNull mu<R, M>, B>>,
-                        ? extends @NotNull App<ContTKind.@NotNull mu<R, M>, A>> aToRbToRa
-        ) {
-            return new ContTKind<>(
-                    ar -> {
-                        final Function<? super @NotNull A, ? extends @NotNull App<ContTKind.@NotNull mu<R, M>, B>> fabr =
-                                a -> new ContTKind<>(br -> ar.apply(a));
-
-                        return narrow(aToRbToRa.apply(fabr)).getDelegate().apply(ar);
-                    }
-            );
-        }
-
     }
 }
 

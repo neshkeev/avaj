@@ -13,5 +13,5 @@ public interface ReaderT<
         M extends @NotNull Object & Monad.mu,
         A extends @NotNull Object
     > extends Function<
-        @NotNull R,
+        R,
         @NotNull App<M, A>> { }
