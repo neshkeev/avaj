@@ -55,13 +55,13 @@ public class ContTKind<R extends @NotNull Object, M extends @NotNull Object & Mo
         }
 
         @Override
-        public @NotNull <A extends @NotNull Object> App<ContTKind.@NotNull mu<R, M>, A> pure(final A a) {
+        public @NotNull <A extends @NotNull Object> ContTKind<R, M, A> pure(final A a) {
             @NotNull final App<M, A> ma = monad.pure(a);
             return new ContTKind<>(c -> monad.flatMap(ma, c));
         }
 
         @Override
-        public <A extends @NotNull Object, B extends @NotNull Object> @NotNull App<ContTKind.@NotNull mu<R, M>, B> flatMap(
+        public <A extends @NotNull Object, B extends @NotNull Object> @NotNull ContTKind<R, M, B> flatMap(
                 @NotNull final App<ContTKind.@NotNull mu<R, M>, A> ma,
                 @NotNull final Function<? super A, ? extends @NotNull App<ContTKind.@NotNull mu<R, M>, B>> aToMb
         ) {

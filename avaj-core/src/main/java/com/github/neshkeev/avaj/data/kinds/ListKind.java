@@ -53,7 +53,7 @@ public final class ListKind<T extends @NotNull Object> implements App<ListKind.@
             final A head = delegate.head();
             final List<A> tail = delegate.tail();
             final ListKind<B> newHead = aToMb.andThen(ListKind::narrow).apply(head);
-            final ListKind<B> newTail = this.flatMap(new ListKind<>(tail), aToMb);
+            final ListKind<B> newTail = flatMap(new ListKind<>(tail), aToMb);
 
             return newHead.merge(newTail);
         }

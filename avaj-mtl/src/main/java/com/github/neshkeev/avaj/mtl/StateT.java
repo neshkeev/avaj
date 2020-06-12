@@ -4,7 +4,6 @@ import com.github.neshkeev.avaj.App;
 import com.github.neshkeev.avaj.typeclasses.Monad;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Objects;
 import java.util.function.Function;
 
 // * -> (* -> *) -> * -> *
@@ -29,7 +28,7 @@ public interface StateT<S extends @NotNull Object, M extends @NotNull Object & M
 
         @Override
         public String toString() {
-            return Objects.toString(value);
+            return String.format("(%s, %s)", state, value);
         }
     }
 }

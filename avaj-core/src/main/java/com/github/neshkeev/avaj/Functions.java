@@ -1,6 +1,5 @@
 package com.github.neshkeev.avaj;
 
-import com.github.neshkeev.avaj.typeclasses.Monad;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.BiFunction;
@@ -36,8 +35,4 @@ public final class Functions {
         return entity;
     }
 
-    @NotNull
-    public Object proj() {
-        return null;
-    }
 }

@@ -2,13 +2,22 @@ package com.github.neshkeev.avaj.data;
 
 import org.jetbrains.annotations.NotNull;
 
+import static com.github.neshkeev.avaj.data.List.Cons.cons;
+import static com.github.neshkeev.avaj.data.List.Nil.nil;
+
 public abstract class List<T extends @NotNull Object> {
     private List() {}
     public abstract T head();
     public abstract @NotNull List<T> tail();
+    public abstract boolean isEmpty();
 
     @NotNull
     public abstract List<T> merge(@NotNull final List<T> right);
+
+    @NotNull
+    public static<T extends @NotNull Object> List<T> of(@NotNull final T el) {
+        return cons(el, nil());
+    }
 
     public static final class Nil<T extends @NotNull Object> extends List<T> {
         private Nil() { }
@@ -18,6 +27,11 @@ public abstract class List<T extends @NotNull Object> {
 
         @Override
         public @NotNull List<T> tail() { throw new UnsupportedOperationException("tail for Nil is not defined"); }
+
+        @Override
+        public boolean isEmpty() {
+            return true;
+        }
 
         public static<T extends @NotNull Object> Nil<T> nil() { return new Nil<>(); }
 
@@ -52,6 +66,11 @@ public abstract class List<T extends @NotNull Object> {
         @Override
         public @NotNull List<T> tail() {
             return tail;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return false;
         }
 
         @Override

@@ -8,7 +8,18 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
 
-public class StateTKind<S extends @NotNull Object, M extends @NotNull Object & Monad.mu, A extends @NotNull Object> implements App<StateTKind.@NotNull mu<S, M>, A> {
+public class StateTKind<S extends @NotNull Object, M extends @NotNull Object & Monad.mu, A extends @NotNull Object>
+        implements App<StateTKind.@NotNull mu<S, M>, A> {
+
+    public static void main(String[] args) {
+        final StateTMonad<@NotNull Integer, Id.@NotNull mu> sm = new StateTMonad<>(Id.IdMonad.INSTANCE);
+        System.out.println(Id.narrow(StateTKind.narrow(sm.flatMap(sm.put(5), s -> sm.pure("X"))).getDelegate().apply(1)).getValue());
+
+        System.out.println(StateTKind.narrow(sm.flatMap(sm.get(),
+                s -> sm.flatMap(sm.put(s + 1),
+                ss -> sm.pure(s)
+        ))).getDelegate().apply(1));
+    }
 
     @NotNull
     private final StateT<S, M, A> delegate;
@@ -47,20 +58,25 @@ public class StateTKind<S extends @NotNull Object, M extends @NotNull Object & M
         }
 
         @Override
-        public <A extends @NotNull Object, B extends @NotNull Object> @NotNull App<StateTKind.@NotNull mu<S, M>, B> flatMap(
+        @NotNull
+        public <A extends @NotNull Object, B extends @NotNull Object>
+        App<StateTKind.@NotNull mu<S, M>, B> flatMap(
                 @NotNull final App<StateTKind.@NotNull mu<S, M>, A> ma,
                 @NotNull final Function<? super A, ? extends @NotNull App<StateTKind.@NotNull mu<S, M>, B>> aToMb
         ) {
-            final StateT<S, M, B> smbStateT = s -> {
-                final var ima = StateTKind.narrow(ma).getDelegate().apply(s);
-                return internalMonad.flatMap(ima,
-                        is -> StateTKind.narrow(aToMb.apply(is.getValue()))
-                                .getDelegate()
-                                .apply(is.getState())
-                );
-            };
-
-            return new StateTKind<>(smbStateT);
+            final StateT<S, M, A> sToSA = StateTKind.narrow(ma).getDelegate();
+            final StateT<S, M, B> res = s -> internalMonad.flatMap(sToSA.apply(s),
+                    ss -> {
+                        final S newState = ss.getState();
+                        final A newVal = ss.getValue();
+                        return aToMb
+                                .andThen(StateTKind::narrow)
+                                .andThen(StateTKind::getDelegate)
+                                .apply(newVal)
+                                .apply(newState)
+                                ;
+                    });
+            return new StateTKind<>(res);
         }
 
         @Override
@@ -78,10 +94,5 @@ public class StateTKind<S extends @NotNull Object, M extends @NotNull Object & M
         public StateTKind<S, M, @NotNull Unit> put(@NotNull final S state) {
             return new StateTKind<>(ignore -> internalMonad.pure(new StateT.Result<>(Unit.UNIT, state)));
         }
-//        @NotNull
-//        public static<S extends @NotNull Object, M extends Monad.mu> StateTMonad<S, M> narrow(Monad<? extends StateTKind.mu<S, M>> monad) {
-//            return (StateTMonad<S, M>) monad;
-//        }
-
     }
 }

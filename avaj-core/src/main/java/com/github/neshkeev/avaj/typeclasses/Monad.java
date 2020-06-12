@@ -1,9 +1,12 @@
 package com.github.neshkeev.avaj.typeclasses;
 
 import com.github.neshkeev.avaj.App;
+import com.github.neshkeev.avaj.Unit;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
+
+import static com.github.neshkeev.avaj.Unit.UNIT;
 
 public interface Monad<M extends @NotNull Object & Monad.mu> extends Applicative<M> {
 
@@ -54,6 +57,12 @@ public interface Monad<M extends @NotNull Object & Monad.mu> extends Applicative
                         a -> this.flatMap(hfn,
                         fn -> this.pure(fn.apply(a))
                 ));
+    }
+
+    default <A extends @NotNull Object>
+    @NotNull App<M, @NotNull Unit> replicateM_(final int cnt, @NotNull final App<M, A> m) {
+        if (cnt <= 0) return pure(UNIT);
+        return flatMap(m, _m -> replicateM_(cnt - 1, m));
     }
 
     interface mu extends Applicative.mu { }
