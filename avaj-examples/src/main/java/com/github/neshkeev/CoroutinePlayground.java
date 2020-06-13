@@ -9,10 +9,13 @@ import com.github.neshkeev.avaj.data.List;
 import com.github.neshkeev.avaj.mtl.*;
 import com.github.neshkeev.avaj.typeclasses.Monad;
 import com.github.neshkeev.avaj.typeclasses.MonadTrans;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
+import java.util.function.Supplier;
 
+import static com.github.neshkeev.avaj.Functions.constFunction;
 import static com.github.neshkeev.avaj.Unit.UNIT;
 import static com.github.neshkeev.avaj.data.List.Nil.nil;
 
@@ -22,19 +25,31 @@ public class CoroutinePlayground {
         final ContTKind<@NotNull Unit, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit>>, WriterK.@NotNull mu>, @NotNull Unit> fiveA = ContTKind.narrow(m.replicateM_(2, printOne(1, "a")));
         final CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit> one = new CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit>(fiveA.getDelegate()::apply);
 
-        final ContTKind<@NotNull Unit, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit>>, WriterK.@NotNull mu>, @NotNull Unit> sixB = ContTKind.narrow(m.replicateM_(6, printOne(1, "b")));
+        final ContTKind<@NotNull Unit, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit>>, WriterK.@NotNull mu>, @NotNull Unit> sixB = ContTKind.narrow(m.replicateM_(16, printOne(1, "b")));
         final CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit> two = new CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit>(sixB.getDelegate()::apply);
 
         final ContTKind<@NotNull Unit, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit>>, WriterK.@NotNull mu>, @NotNull Unit> fourC = ContTKind.narrow(m.replicateM_(4, printOne(1, "c")));
         final CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit> three = new CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit>(fourC.getDelegate()::apply);
 
-        System.out.println(WriterK.narrow(m.runCoroutine(
+//        final Supplier<@NotNull App<ContTKind.mu<@NotNull Unit, StateTKind.mu<@NotNull List<@NotNull CoroutineT<@NotNull Unit, WriterK.mu, @NotNull Unit>>, WriterK.mu>>, @NotNull Unit>> exhaust = m::exhaust;
+//        System.out.println(WriterK.narrow(m.runCoroutine(
+//                new CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit>(ContTKind.narrow(
+//                        m.<Unit, Unit>discardRight((m.flatMap(
+//                                m.fork(one), _c -> m.flatMap(
+//                                        m.fork(two), _d ->
+//                                                three
+//                                )))).apply(exhaust)).getDelegate()::apply
+//                ))).getDelegate().getLog());
+
+        System.out.println(WriterK.narrow(
+                m.runCoroutine(
                 new CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit>(m.flatMap(
                         m.fork(one), _c -> m.flatMap(
                         m.fork(two), _d ->
                         three
                         )).getDelegate()::apply)
-        )).getDelegate().getLog());
+                )
+        ).getDelegate().getLog());
     }
 
     public static CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit> printOne(int i, String word) {
@@ -49,6 +64,7 @@ public class CoroutinePlayground {
 // (a -> StateT<List<CoroutineT<R, M, A>>, M, A>) -> StateT<List<CoroutineT<R, M, A>>, M, A>
 // s -> m (a, s)
 // StateT<List<CoroutineT<R, M, A>>, M, A> :: List<CoroutineT<R, M, A>> -> M<Result<List<CoroutineT<R, M, A>>, A>>
+@FunctionalInterface
 interface CoroutineT<
         R extends @NotNull Object,
         M extends @NotNull Object & Monad.mu,
@@ -93,6 +109,7 @@ final class CoroutineTKind <
         }
 
         @Override
+        @Contract(value = "_ -> !null", pure = true)
         @NotNull
         public <A extends @NotNull Object, B extends @NotNull Object> ContTKind<
                 R,
@@ -113,13 +130,15 @@ final class CoroutineTKind <
         }
 
         @Override
+        @Contract(value = "_ -> !null", pure = true)
         public @NotNull <A extends @NotNull Object>
-        ContTKind<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>, A> pure(A a) {
+        ContTKind<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>, A> pure(@NotNull final A a) {
             return contTMonad.pure(a);
         }
 
         @Override
         @NotNull
+        @Contract(value = "_, _ -> !null", pure = true)
         public <A extends @NotNull Object, B extends @NotNull Object>
         ContTKind<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>, B> flatMap(
                     @NotNull final App<ContTKind.@NotNull mu<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>>, A> ma,
@@ -131,6 +150,7 @@ final class CoroutineTKind <
         // getCCs :: Monad m => CoroutineT r m [CoroutineT r m ()]
         // getCCs = CoroutineT $ lift get
         @NotNull
+        @Contract(value = "-> !null", pure = true)
         public CoroutineTKind<R, M, @NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>> getCCs() {
             return new CoroutineTKind<R, M, @NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>>(
                     contTMonad.lift(stateTMonad.get()).getDelegate()::apply
@@ -140,6 +160,7 @@ final class CoroutineTKind <
         // putCCs :: Monad m => [CoroutineT r m ()] -> CoroutineT r m ()
         // putCCs = CoroutineT . lift . put
         @NotNull
+        @Contract(value = "_ -> !null", pure = true)
         public CoroutineTKind<R, M, @NotNull Unit> putCCs(
                 @NotNull final List<@NotNull CoroutineT<R, M, @NotNull Unit>> existingCors
         ) {
@@ -150,17 +171,22 @@ final class CoroutineTKind <
 
         // dequeue :: Monad m => CoroutineT r m ()
         @NotNull
+        @Contract(value = "-> !null", pure = true)
         public CoroutineTKind<R, M, @NotNull Unit> dequeue() {
             final ContTKind<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>, @NotNull Unit> res =
                     flatMap(getCCs(),
                             currCCs -> {
-                                if (currCCs.isEmpty()) pure(UNIT);
-                                return flatMap(putCCs(currCCs.tail()), c -> new ContTKind<>(currCCs.head()));
+                                if (currCCs.isEmpty()) return pure(UNIT);
+                                return flatMap(
+                                        putCCs(currCCs.tail()),
+                                        _c -> new ContTKind<>(currCCs.head())
+                                );
                             });
             return new CoroutineTKind<R, M, @NotNull Unit>(res.getDelegate()::apply);
         }
 
         // queue :: Monad m => CoroutineT r m () -> CoroutineT r m ()
+        @Contract(value = "_ -> !null", pure = true)
         @NotNull
         public CoroutineTKind<R, M, @NotNull Unit> queue(@NotNull final CoroutineTKind<R, M, @NotNull Unit> from) {
             final List<@NotNull CoroutineT<R, M, @NotNull Unit>> newCor = List.of(from.getDelegate()::apply);
@@ -173,6 +199,7 @@ final class CoroutineTKind <
         }
 
         // yield :: Monad m => CoroutineT r m ()
+        @Contract(value = "-> !null", pure = true)
         @NotNull
         public CoroutineTKind<R, M, @NotNull Unit> yield() {
             final ContTKind<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>, @NotNull Unit> res =
@@ -190,6 +217,7 @@ final class CoroutineTKind <
 
         //fork :: Monad m => CoroutineT r m () -> CoroutineT r m ()
         @NotNull
+        @Contract(value = "_ -> !null", pure = true)
         public CoroutineTKind<R, M, @NotNull Unit> fork(@NotNull final CoroutineTKind<R, M, @NotNull Unit> p) {
             final ContTKind<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>, @NotNull Unit> res =
                     this.<Unit, Unit>callCC(
@@ -207,34 +235,45 @@ final class CoroutineTKind <
 
         //exhaust :: Monad m => CoroutineT r m ()
         @NotNull
+        @Contract(value = "-> !null", pure = true)
         public CoroutineTKind<R, M, @NotNull Unit> exhaust() {
             final ContTKind<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>, @NotNull Unit> res =
                 flatMap(getCCs(),
                     ccs -> {
-                        if (ccs.isEmpty()) pure(UNIT);
-                        return flatMap(this.yield(), d -> exhaust());
+                        if (ccs.isEmpty()) return pure(UNIT);
+                        else return flatMap(
+                                this.yield(),
+                                d -> exhaust()
+                        );
                     });
             return new CoroutineTKind<R, M, @NotNull Unit>(res.getDelegate()::apply);
         }
-
         //runCoroutineT :: Monad m => CoroutineT r m r -> m r
-        //runCoroutineT = flip evalStateT [] . flip runContT return . runCoroutineT' . (<* exhaust)
+        //runCoroutineT a = stateToInternal (corToState (runCoroutineT' (addExhaust a)))
+        //  where
+        //    stateToInternal :: Monad m => StateT [CoroutineT r m ()] m r -> m r
+        //    stateToInternal = flip evalStateT []
+        //    corToState :: Monad m => ContT r (StateT [CoroutineT r m ()] m) r -> StateT [CoroutineT r m ()] m r
+        //    corToState = flip runContT return
+        //    addExhaust :: Monad m => CoroutineT r m a -> CoroutineT r m a
+        //    addExhaust x = liftA2 const x exhaust
+        @Contract(value = "_ -> !null", pure = true)
         @NotNull
         public App<M, R> runCoroutine(@NotNull final CoroutineTKind<R, M, R> cor) {
-            final ContTKind<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>, R> narrow =
-                    ContTKind.narrow(
-                            this.liftA2(Functions.<R, Unit>constFunction())
-                                    .apply(new ContTKind<>(cor.getDelegate()))
-                                    .apply(exhaust())
-                    );
-//            final CoroutineTKind<R, M, R> cor1 = new CoroutineTKind<R, M, R>(narrow.getDelegate()::apply);
-            final CoroutineTKind<R, M, R> cor1 = cor;
-            final StateT<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M, R> state = StateTKind.narrow(cor1.getDelegate().apply(stateTMonad::pure)).getDelegate();
-            return internalMonad.map(StateT.Result<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, R>::getValue).apply(state.apply(nil()));
+            final Function<@NotNull CoroutineTKind<R, M, R>, @NotNull CoroutineTKind<R, M, R>> addExhaust =
+                    x -> new CoroutineTKind<R, M, R>(ContTKind.narrow(liftA2(Functions.<R, Unit>constFunction()).apply(x).apply(exhaust())).getDelegate()::apply);
+            final Function<@NotNull CoroutineTKind<R, M, R>, StateTKind<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M, R>> corToState =
+                    x -> x.getDelegate().andThen(StateTKind::narrow).apply(stateTMonad::pure);
+            final Function<@NotNull StateTKind<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M, R>, @NotNull App<M, R>> stateToInternal =
+                    x -> stateTMonad.evalStateT(x, nil());
+
+            return addExhaust.andThen(corToState).andThen(stateToInternal).apply(cor);
         }
 
         @Override
-        public @NotNull <A extends @NotNull Object> CoroutineTKind<R,  M,  A> lift(@NotNull App<M, A> m) {
+        @Contract(value = "_ -> !null", pure = true)
+        @NotNull
+        public <A extends @NotNull Object> CoroutineTKind<R, M, A> lift(@NotNull App<M, A> m) {
             return new CoroutineTKind<R, M, A>(contTMonad.lift(stateTMonad.lift(m)).getDelegate()::apply);
         }
     }
@@ -259,10 +298,11 @@ class Writer<A> {
 }
 
 class WriterK<A extends @NotNull Object> implements App<WriterK.@NotNull mu, A> {
-    private final Writer<A> delegate;
+    @NotNull private final Writer<A> delegate;
 
     WriterK(@NotNull final Writer<A> delegate) { this.delegate = delegate; }
 
+    @NotNull
     public Writer<A> getDelegate() { return delegate; }
     public static<A extends @NotNull Object> WriterK<A> narrow(@NotNull final App<WriterK.@NotNull mu, A> kind) { return (WriterK<A>) kind; }
 
@@ -272,11 +312,13 @@ class WriterK<A extends @NotNull Object> implements App<WriterK.@NotNull mu, A> 
         INSTANCE;
 
         @Override
+        @Contract(value = "_ -> !null", pure = true)
         public @NotNull <A extends @NotNull Object> App<WriterK.@NotNull mu, A> pure(A a) {
             return new WriterK<>(new Writer<>("", a));
         }
 
         @Override
+        @Contract(value = "_, _ -> !null", pure = true)
         public @NotNull <A extends @NotNull Object, B extends @NotNull Object> App<WriterK.@NotNull mu, B> flatMap(
                 @NotNull final App<WriterK.@NotNull mu, A> ma,
                 @NotNull final Function<? super A, ? extends @NotNull App<WriterK.@NotNull mu, B>> aToMb) {
@@ -286,26 +328,9 @@ class WriterK<A extends @NotNull Object> implements App<WriterK.@NotNull mu, A> 
             return new WriterK<>(new Writer<>(wa.getLog() + wb.getLog(), wb.getValue()));
         }
 
-        public @NotNull App<WriterK.@NotNull mu, @NotNull Unit> tell(String a) {
+        @Contract(value = "_ -> !null", pure = true)
+        public @NotNull App<WriterK.@NotNull mu, @NotNull Unit> tell(@NotNull final String a) {
             return new WriterK<>(new Writer<>(a, UNIT));
         }
     }
 }
-/*
-
-type cor = [cor] -> cor
-
-Producer :: cor
-Producer =
-  loop:
-    yield consumer
-
-Consumer :: cor
-Consumer:
-  loop:
-    yield producer
-
-yield :: cor -> cor
-yield (cor) =
-
-*/

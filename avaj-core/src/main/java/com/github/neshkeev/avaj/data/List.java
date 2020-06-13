@@ -1,5 +1,6 @@
 package com.github.neshkeev.avaj.data;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import static com.github.neshkeev.avaj.data.List.Cons.cons;
@@ -7,13 +8,19 @@ import static com.github.neshkeev.avaj.data.List.Nil.nil;
 
 public abstract class List<T extends @NotNull Object> {
     private List() {}
+    @Contract(value = "-> !null", pure = true)
+    @NotNull
     public abstract T head();
+    @Contract(value = "-> !null", pure = true)
     public abstract @NotNull List<T> tail();
+    @Contract(pure = true)
     public abstract boolean isEmpty();
 
+    @Contract(value = "_ -> !null", pure = true)
     @NotNull
     public abstract List<T> merge(@NotNull final List<T> right);
 
+    @Contract(value = "_ -> !null", pure = true)
     @NotNull
     public static<T extends @NotNull Object> List<T> of(@NotNull final T el) {
         return cons(el, nil());
@@ -28,6 +35,7 @@ public abstract class List<T extends @NotNull Object> {
         @Override
         public @NotNull List<T> tail() { throw new UnsupportedOperationException("tail for Nil is not defined"); }
 
+        @Contract(value = "-> true", pure = true)
         @Override
         public boolean isEmpty() {
             return true;
@@ -37,7 +45,7 @@ public abstract class List<T extends @NotNull Object> {
 
         @Override
         @NotNull
-        public List<T> merge(@NotNull List<T> right) {
+        public List<T> merge(@NotNull final List<T> right) {
             return right;
         }
 
@@ -68,6 +76,7 @@ public abstract class List<T extends @NotNull Object> {
             return tail;
         }
 
+        @Contract(value = "-> false", pure = true)
         @Override
         public boolean isEmpty() {
             return false;
@@ -75,7 +84,7 @@ public abstract class List<T extends @NotNull Object> {
 
         @Override
         @NotNull
-        public List<T> merge(@NotNull List<T> right) {
+        public List<T> merge(@NotNull final List<T> right) {
             return cons(head, tail.merge(right));
         }
 

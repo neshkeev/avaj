@@ -94,5 +94,11 @@ public class StateTKind<S extends @NotNull Object, M extends @NotNull Object & M
         public StateTKind<S, M, @NotNull Unit> put(@NotNull final S state) {
             return new StateTKind<>(ignore -> internalMonad.pure(new StateT.Result<>(Unit.UNIT, state)));
         }
+
+        public<A extends @NotNull Object> App<M, A> evalStateT(final StateTKind<S, M, @NotNull A> m, @NotNull final S state) {
+            return internalMonad.<StateT.Result<S, A>, A>map(StateT.Result::getValue)
+                    .compose(m.getDelegate())
+                    .apply(state);
+        }
     }
 }
