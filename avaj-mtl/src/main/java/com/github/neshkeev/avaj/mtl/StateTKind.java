@@ -4,6 +4,7 @@ import com.github.neshkeev.avaj.App;
 import com.github.neshkeev.avaj.Unit;
 import com.github.neshkeev.avaj.typeclasses.Monad;
 import com.github.neshkeev.avaj.typeclasses.MonadTrans;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
@@ -95,7 +96,8 @@ public class StateTKind<S extends @NotNull Object, M extends @NotNull Object & M
             return new StateTKind<>(ignore -> internalMonad.pure(new StateT.Result<>(Unit.UNIT, state)));
         }
 
-        public<A extends @NotNull Object> App<M, A> evalStateT(final StateTKind<S, M, @NotNull A> m, @NotNull final S state) {
+        @Contract(value = "_, _ -> !null", pure = true)
+        public<A extends @NotNull Object> App<M, A> evalStateT(@NotNull final StateTKind<S, M, @NotNull A> m, @NotNull final S state) {
             return internalMonad.<StateT.Result<S, A>, A>map(StateT.Result::getValue)
                     .compose(m.getDelegate())
                     .apply(state);

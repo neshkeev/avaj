@@ -3,6 +3,7 @@ package com.github.neshkeev.avaj.mtl;
 import com.github.neshkeev.avaj.App;
 import com.github.neshkeev.avaj.typeclasses.Monad;
 import com.github.neshkeev.avaj.typeclasses.MonadTrans;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
@@ -38,6 +39,7 @@ public class ContTKind<R extends @NotNull Object, M extends @NotNull Object & Mo
 
         @Override
         @NotNull
+        @Contract(value = "_ -> !null", pure = true)
         public <A extends @NotNull Object, B extends @NotNull Object> ContTKind<R, M, A> callCC(
                 @NotNull final Function<
                         ? super @NotNull Function<

@@ -6,16 +6,17 @@ import com.github.neshkeev.avaj.App;
 import com.github.neshkeev.avaj.Functions;
 import com.github.neshkeev.avaj.Unit;
 import com.github.neshkeev.avaj.data.List;
-import com.github.neshkeev.avaj.mtl.*;
+import com.github.neshkeev.avaj.mtl.ContT;
+import com.github.neshkeev.avaj.mtl.ContTKind;
+import com.github.neshkeev.avaj.mtl.MonadCont;
+import com.github.neshkeev.avaj.mtl.StateTKind;
 import com.github.neshkeev.avaj.typeclasses.Monad;
 import com.github.neshkeev.avaj.typeclasses.MonadTrans;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
-import java.util.function.Supplier;
 
-import static com.github.neshkeev.avaj.Functions.constFunction;
 import static com.github.neshkeev.avaj.Unit.UNIT;
 import static com.github.neshkeev.avaj.data.List.Nil.nil;
 
@@ -55,7 +56,11 @@ public class CoroutinePlayground {
     public static CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit> printOne(int i, String word) {
         final WriterMonad w = WriterMonad.INSTANCE;
         final CoroutineTMonad<@NotNull Unit, WriterK.@NotNull mu> m = new CoroutineTMonad<>(w);
-        return new CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit>(m.flatMap(m.lift(w.tell(word.repeat(i))), ccc -> m.yield()).getDelegate()::apply);
+        return new CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit>(
+                m.flatMap(
+                        m.lift(w.tell(word.repeat(i))),
+                        ccc -> m.yield()
+                ).getDelegate()::apply);
     }
 }
 
@@ -141,8 +146,8 @@ final class CoroutineTKind <
         @Contract(value = "_, _ -> !null", pure = true)
         public <A extends @NotNull Object, B extends @NotNull Object>
         ContTKind<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>, B> flatMap(
-                    @NotNull final App<ContTKind.@NotNull mu<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>>, A> ma,
-                    @NotNull final Function<? super A, ? extends @NotNull App<ContTKind.@NotNull mu<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>>, B>> aToMb
+                @NotNull final App<ContTKind.@NotNull mu<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>>, A> ma,
+                @NotNull final Function<? super A, ? extends @NotNull App<ContTKind.@NotNull mu<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>>, B>> aToMb
         ) {
             return contTMonad.flatMap(ma, aToMb);
         }

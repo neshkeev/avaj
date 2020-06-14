@@ -3,12 +3,79 @@
 -- We use GeneralizedNewtypeDeriving to avoid boilerplate. As of GHC 7.8, it is safe.
 
 import Control.Applicative
-import Control.Monad.Cont
-import Control.Monad.State
+import Control.Monad.Cont (MonadCont, callCC)
+
+import Control.Monad.Writer (MonadTrans, lift, replicateM_)
+import Control.Monad (ap, liftM)
+
+newtype StateT s m a = StateT { runStateT :: s -> m (a,s) }
+
+instance Monad m => Monad (StateT s m) where
+    return a = StateT $ \s -> return (a, s)
+    m >>= k  = StateT $ \s -> do
+        ~(a, s') <- runStateT m s
+        runStateT (k a) s'
+
+instance Monad m => Functor (StateT s m) where
+    fmap = liftM
+
+instance Monad m => Applicative (StateT s m) where
+    pure  = return
+    (<*>) = ap
+
+instance MonadTrans (StateT s) where
+  lift m = StateT $ \s -> do { x <- m ; return (x, s); }
+
+get :: Monad m => StateT s m s
+get = StateT $ \s -> return (s, s)
+
+put :: Monad m => s -> StateT s m ()
+put s = StateT $ \_ -> return ((), s)
+
+evalStateT :: Monad m => StateT s m a -> s -> m a 
+evalStateT x = fmap fst . runStateT x
+
+newtype ContT r m a = ContT { runContT :: (a -> m r) -> m r }
+
+instance Monad m => Monad (ContT r m) where
+    return a = ContT $ \c -> do { x <- return a ; c x }
+    ContT v >>= k  = ContT $ \c -> v (\a -> runContT (k a) c)
+
+instance MonadTrans (ContT r) where
+  lift m = ContT $ \c -> do { x <- m ; c x; }
+
+instance Monad m => Functor (ContT a m) where
+    fmap = liftM
+
+instance Monad m => Applicative (ContT a m) where
+    pure = return
+    (<*>) = ap
+
+instance Monad m => MonadCont (ContT r m) where
+    callCC f = ContT $ \ar -> runContT (f (\a -> ContT (\br -> ar a))) ar
+
+newtype Writer s a = Writer { runWriter :: (a, s) } deriving Show
+
+instance Monoid s => Monad (Writer s) where
+    return a = Writer (a, mempty)
+    Writer (a, s) >>= k = let Writer (b, s') = k a in let !res = s <> s' in Writer (b, (seq () res))
+
+instance Monoid s => Functor (Writer s) where
+    fmap = liftM
+
+instance Monoid s => Applicative (Writer s) where
+    pure = return
+    (<*>) = ap
+
+tell :: Monoid s => s -> Writer s ()
+tell s = Writer ((), s)
 
 -- The CoroutineT monad is just ContT stacked with a StateT containing the suspended coroutines.
 newtype CoroutineT r m a = CoroutineT {runCoroutineT' :: ContT r (StateT [CoroutineT r m ()] m) a}
-    deriving (Functor,Applicative,Monad,MonadCont,MonadIO)
+    deriving (Functor,Applicative,Monad,MonadCont)
+
+instance MonadTrans (CoroutineT r) where
+    lift = CoroutineT . lift . lift
 
 -- Used to manipulate the coroutine queue.
 getCCs :: Monad m => CoroutineT r m [CoroutineT r m ()]
@@ -39,7 +106,7 @@ yield = callCC $ \k -> do
     dequeue
 
 fork :: Monad m => CoroutineT r m () -> CoroutineT r m ()
-fork p = callCC $ \k -> do
+fork !p = callCC $ \k -> do
     queue (k ())
     p
     dequeue
@@ -54,24 +121,33 @@ exhaust = do
         
 -- Runs the coroutines in the base monad.
 runCoroutineT :: Monad m => CoroutineT r m r -> m r
-runCoroutineT a = one (two (runCoroutineT' (three a)))
+runCoroutineT !a = stateToInternal (corToState (runCoroutineT' (addExhaust a)))
   where
-    one :: Monad m => StateT [CoroutineT r m ()] m r -> m r
-    one = flip evalStateT []
-    two :: Monad m => ContT r (StateT [CoroutineT r m ()] m) r -> StateT [CoroutineT r m ()] m r
-    two = flip runContT return
-    three :: Monad m => CoroutineT r m a -> CoroutineT r m a
-    three x = eagerConst x exhaust
+    stateToInternal :: Monad m => StateT [CoroutineT r m ()] m r -> m r
+    stateToInternal !a = flip evalStateT [] a
+    corToState :: Monad m => ContT r (StateT [CoroutineT r m ()] m) r -> StateT [CoroutineT r m ()] m r
+    corToState !a = flip runContT return a
+    addExhaust :: Monad m => CoroutineT r m a -> CoroutineT r m a
+    addExhaust x = let !a = exhaust in liftA2 const x a
+    -- addExhaust x = let !e = exhaust in eagerConst x e
     eagerConst :: Monad m => CoroutineT r m a -> CoroutineT r m () -> CoroutineT r m a
-    eagerConst !x !y = (liftA2 const) x y
+    eagerConst !x !y = (liftA2 const) (seq () x)  (seq () y)
 
+printOne :: (Show a, Enum a) => a -> CoroutineT r (Writer String) ()
 printOne n = do
-    liftIO (print n)
+    lift (tell $ show n)
     yield
 
+myreplicateM_ n !e = replicateM_ n e
+
 example = runCoroutineT $ do
-    fork $ replicateM_ 3 (printOne 3)
-    fork $ replicateM_ 14 (printOne 4)
+    fork $ myreplicateM_ 3 (printOne 3)
+    fork $ myreplicateM_ 14 (printOne 4)
     replicateM_ 2 (printOne 2)
 
-main = example
+ex = runCoroutineT $ do
+    fork $ myreplicateM_ 3 (printOne 4)
+    printOne 2
+
+ex1 = runCoroutineT $ do
+    fork $ myreplicateM_ 2 (printOne 4)
