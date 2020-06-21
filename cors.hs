@@ -128,10 +128,8 @@ runCoroutineT !a = stateToInternal (corToState (runCoroutineT' (addExhaust a)))
     corToState :: Monad m => ContT r (StateT [CoroutineT r m ()] m) r -> StateT [CoroutineT r m ()] m r
     corToState !a = flip runContT return a
     addExhaust :: Monad m => CoroutineT r m a -> CoroutineT r m a
-    addExhaust x = let !a = exhaust in liftA2 const x a
-    -- addExhaust x = let !e = exhaust in eagerConst x e
-    eagerConst :: Monad m => CoroutineT r m a -> CoroutineT r m () -> CoroutineT r m a
-    eagerConst !x !y = (liftA2 const) (seq () x)  (seq () y)
+    -- addExhaust x = liftA2 const x exhaust
+    addExhaust x = do { l <- x ; exhaust ; return l }
 
 printOne :: (Show a, Enum a) => a -> CoroutineT r (Writer String) ()
 printOne n = do

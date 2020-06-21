@@ -70,7 +70,7 @@ public interface Monad<M extends @NotNull Object & Monad.mu> extends Applicative
     default <A extends @NotNull Object>
     @NotNull App<M, @NotNull Unit> replicateM_(final int cnt, @NotNull final App<M, A> m) {
         if (cnt <= 0) return pure(UNIT);
-        return flatMap(m, _m -> replicateM_(cnt - 1, m));
+        return flatMap(m, __ -> replicateM_(cnt - 1, m));
     }
 
     interface mu extends Applicative.mu { }
