@@ -3,6 +3,7 @@ package com.github.neshkeev.avaj.data.kinds;
 import com.github.neshkeev.avaj.App;
 import com.github.neshkeev.avaj.data.List;
 import com.github.neshkeev.avaj.typeclasses.Monad;
+import com.github.neshkeev.avaj.typeclasses.Monoid;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
@@ -30,7 +31,7 @@ public final class ListKind<T extends @NotNull Object> implements App<ListKind.@
         return delegate.toString();
     }
 
-    public static class mu implements Monad.mu { }
+    public static class mu implements Monad.mu, Monoid.mu { }
 
     public enum  ListMonad implements Monad<@NotNull mu> {
         INSTANCE;

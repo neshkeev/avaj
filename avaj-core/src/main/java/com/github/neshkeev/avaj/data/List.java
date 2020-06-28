@@ -1,7 +1,11 @@
 package com.github.neshkeev.avaj.data;
 
+import com.github.neshkeev.avaj.typeclasses.Monoid;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Iterator;
+import java.util.stream.Stream;
 
 import static com.github.neshkeev.avaj.data.List.Cons.cons;
 import static com.github.neshkeev.avaj.data.List.Nil.nil;
@@ -20,10 +24,17 @@ public abstract class List<T extends @NotNull Object> {
     @NotNull
     public abstract List<T> merge(@NotNull final List<T> right);
 
+    @SafeVarargs
     @Contract(value = "_ -> !null", pure = true)
     @NotNull
-    public static<T extends @NotNull Object> List<T> of(@NotNull final T el) {
-        return cons(el, nil());
+    public static<T extends @NotNull Object> List<T> of(final T @NotNull ... el) {
+        if (el.length == 0) return nil();
+        return of(Stream.of(el).iterator());
+    }
+
+    public static<T extends @NotNull Object> List<T> of(@NotNull final Iterator<T> iterator) {
+        if (!iterator.hasNext()) return nil();
+        return cons(iterator.next(), of(iterator));
     }
 
     public static final class Nil<T extends @NotNull Object> extends List<T> {
@@ -91,6 +102,20 @@ public abstract class List<T extends @NotNull Object> {
         @Override
         public String toString() {
             return head + ", " + tail.toString();
+        }
+    }
+
+    public static final class ListMonoid<T extends @NotNull Object> implements Monoid<@NotNull List<T>> {
+        @Override
+        @NotNull
+        public List<T> empty() {
+            return nil();
+        }
+
+        @Override
+        @NotNull
+        public List<T> concat(@NotNull final List<T> left, @NotNull final List<T> right) {
+            return left.merge(right);
         }
     }
 }

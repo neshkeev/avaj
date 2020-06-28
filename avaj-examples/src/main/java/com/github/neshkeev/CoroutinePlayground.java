@@ -1,15 +1,12 @@
 package com.github.neshkeev;
 
 import com.github.neshkeev.CoroutineTKind.CoroutineTMonad;
-import com.github.neshkeev.WriterK.WriterMonad;
 import com.github.neshkeev.avaj.App;
-import com.github.neshkeev.avaj.Functions;
 import com.github.neshkeev.avaj.Unit;
 import com.github.neshkeev.avaj.data.List;
-import com.github.neshkeev.avaj.mtl.ContT;
-import com.github.neshkeev.avaj.mtl.ContTKind;
-import com.github.neshkeev.avaj.mtl.MonadCont;
-import com.github.neshkeev.avaj.mtl.StateTKind;
+import com.github.neshkeev.avaj.data.StringMonoid;
+import com.github.neshkeev.avaj.mtl.*;
+import com.github.neshkeev.avaj.mtl.WriterKind.WriterMonad;
 import com.github.neshkeev.avaj.typeclasses.Monad;
 import com.github.neshkeev.avaj.typeclasses.MonadTrans;
 import org.jetbrains.annotations.Contract;
@@ -22,27 +19,69 @@ import static com.github.neshkeev.avaj.data.List.Nil.nil;
 
 public class CoroutinePlayground {
     public static void main(String[] args) {
-        final CoroutineTMonad<@NotNull Unit, WriterK.@NotNull mu> m = new CoroutineTMonad<>(WriterMonad.INSTANCE);
-
-        final App<WriterK.@NotNull mu, @NotNull Unit> run = m.runCoroutine(
+//        simpleCoroutine();
+        final WriterMonad<@NotNull String> w = new WriterMonad<>(StringMonoid.INSTANCE);
+        final CoroutineTMonad<@NotNull Unit, WriterTKind.@NotNull mu<@NotNull String, Id.@NotNull mu>> m = new CoroutineTMonad<>(w);
+        final App<WriterTKind.@NotNull mu<@NotNull String, Id.@NotNull mu>, @NotNull Unit> res = m.runCoroutine(
                 m.flatMap(
-                        m.fork(m.replicateM_(2, printOne("H"))), _l -> m.flatMap(
-                        m.fork(m.replicateM_(5, printOne("B"))), __ ->
-                        m.replicateM_(3, printOne("C"))
+                        m.fork(m.replicateM_(2, p("H"))), _l -> m.flatMap(
+                        m.fork(m.replicateM_(5, p("B"))), __ ->
+                        m.replicateM_(3, p("C"))
         )));
-        System.out.println(WriterK.narrow(run).getDelegate().getLog());
+        System.out.println(WriterKind.narrow(WriterTKind.narrow(res)).getWriter().getLog());
     }
 
-    public static CoroutineTKind<@NotNull Unit, WriterK.@NotNull mu, @NotNull Unit> printOne(
-            @NotNull final String word
-    ) {
-        final WriterMonad w = WriterMonad.INSTANCE;
-        final CoroutineTMonad<@NotNull Unit, WriterK.@NotNull mu> m = new CoroutineTMonad<>(w);
-        return CoroutineTKind.narrow(
+    public static CoroutineTKind<
+            @NotNull Unit,
+            WriterTKind.@NotNull mu<@NotNull String, Id.@NotNull mu>,
+            @NotNull Unit
+            > p(@NotNull final String word) {
+        final WriterMonad<@NotNull String> w = new WriterMonad<>(StringMonoid.INSTANCE);
+        final CoroutineTMonad<@NotNull Unit, WriterTKind.@NotNull mu<@NotNull String, Id.@NotNull mu>> m = new CoroutineTMonad<>(w);
+        return m.flatMap(
+                m.lift(w.tell(word)),
+                __ -> m.yield()
+        );
+    }
+    private static void simpleCoroutine() {
+        final WriterTKind.WriterTMonad<@NotNull String, Id.@NotNull mu> w = new WriterTKind.WriterTMonad<>(StringMonoid.INSTANCE, Id.IdMonad.INSTANCE);
+        final CoroutineTMonad<@NotNull Unit, WriterTKind.@NotNull mu<@NotNull String, Id.@NotNull mu>> m = new CoroutineTMonad<>(w);
+
+        final App<
+                WriterTKind.@NotNull mu<@NotNull String, Id.@NotNull mu>,
+                @NotNull Unit> run = m.runCoroutine(
                 m.flatMap(
-                        m.lift(w.tell(word)),
-                        __ -> m.yield()
-                ));
+                        m.fork(m.replicateM_(2, printOneString("H"))), _l -> m.flatMap(
+                        m.fork(m.replicateM_(5, printOneString("B"))), __ ->
+                        m.replicateM_(3, printOneString("C"))
+        )));
+        System.out.println(Id.narrow(WriterTKind.narrow(run).getDelegate()).getValue().getLog());
+    }
+
+    public static CoroutineTKind<
+            @NotNull Unit,
+            WriterTKind.@NotNull mu<@NotNull List<@NotNull String>, Id.@NotNull mu>,
+            @NotNull Unit
+            > printOneList(@NotNull final String word) {
+        final WriterTKind.WriterTMonad<@NotNull List<@NotNull String>, Id.@NotNull mu> w = new WriterTKind.WriterTMonad<>(new List.ListMonoid<>(), Id.IdMonad.INSTANCE);
+        final CoroutineTMonad<@NotNull Unit, WriterTKind.@NotNull mu<@NotNull List<@NotNull String>, Id.@NotNull mu>> m = new CoroutineTMonad<>(w);
+        return m.flatMap(
+                m.lift(w.tell(List.of(word))),
+                __ -> m.yield()
+        );
+    }
+
+    public static CoroutineTKind<
+            @NotNull Unit,
+            WriterTKind.@NotNull mu<@NotNull String, Id.@NotNull mu>,
+            @NotNull Unit
+        > printOneString(@NotNull final String word) {
+        final WriterTKind.WriterTMonad<@NotNull String, Id.@NotNull mu> w = new WriterTKind.WriterTMonad<>(StringMonoid.INSTANCE, Id.IdMonad.INSTANCE);
+        final CoroutineTMonad<@NotNull Unit, WriterTKind.@NotNull mu<@NotNull String, Id.@NotNull mu>> m = new CoroutineTMonad<>(w);
+        return m.flatMap(
+                m.lift(w.tell(word)),
+                __ -> m.yield()
+        );
     }
 }
 
@@ -115,10 +154,13 @@ final class CoroutineTKind <
         }
 
         @Override
+        @Contract(value = "_, _ -> !null", pure = true)
         public @NotNull <A extends @NotNull Object, B extends @NotNull Object> CoroutineTKind<R, M, B> flatMap(
                 @NotNull final App<ContTKind.@NotNull mu<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>>, A> ma,
                 @NotNull final Function<
-                        ? super A, ? extends @NotNull App<ContTKind.@NotNull mu<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>>, B>> aToMb
+                        ? super A,
+                        ? extends @NotNull App<ContTKind.@NotNull mu<R, StateTKind.@NotNull mu<@NotNull List<@NotNull CoroutineT<R, M, @NotNull Unit>>, M>>, B>
+                    > aToMb
         ) {
             return narrow(contTMonad.flatMap(ma, aToMb));
         }
@@ -240,62 +282,6 @@ final class CoroutineTKind <
         @NotNull
         public <A extends @NotNull Object> CoroutineTKind<R, M, A> lift(@NotNull App<M, A> m) {
             return new CoroutineTKind<R, M, A>(contTMonad.lift(stateTMonad.lift(m)).getDelegate()::apply);
-        }
-    }
-}
-
-class Writer<A> {
-    private final String log;
-    private final A value;
-
-    Writer(@NotNull final String log, @NotNull final A value) {
-        this.log = log;
-        this.value = value;
-    }
-
-    public String getLog() { return log; }
-    public A getValue() { return value; }
-
-    @Override
-    public String toString() {
-        return "(" + log + ", " + value + ")";
-    }
-}
-
-class WriterK<A extends @NotNull Object> implements App<WriterK.@NotNull mu, A> {
-    @NotNull private final Writer<A> delegate;
-
-    WriterK(@NotNull final Writer<A> delegate) { this.delegate = delegate; }
-
-    @NotNull
-    public Writer<A> getDelegate() { return delegate; }
-    public static<A extends @NotNull Object> WriterK<A> narrow(@NotNull final App<WriterK.@NotNull mu, A> kind) { return (WriterK<A>) kind; }
-
-    public enum mu implements Monad.mu {}
-
-    public enum WriterMonad implements Monad<WriterK.@NotNull mu> {
-        INSTANCE;
-
-        @Override
-        @Contract(value = "_ -> !null", pure = true)
-        public @NotNull <A extends @NotNull Object> App<WriterK.@NotNull mu, A> pure(A a) {
-            return new WriterK<>(new Writer<>("", a));
-        }
-
-        @Override
-        @Contract(value = "_, _ -> !null", pure = true)
-        public @NotNull <A extends @NotNull Object, B extends @NotNull Object> App<WriterK.@NotNull mu, B> flatMap(
-                @NotNull final App<WriterK.@NotNull mu, A> ma,
-                @NotNull final Function<? super A, ? extends @NotNull App<WriterK.@NotNull mu, B>> aToMb) {
-            final Writer<A> wa = narrow(ma).getDelegate();
-            final Writer<B> wb = narrow(aToMb.apply(wa.getValue())).getDelegate();
-
-            return new WriterK<>(new Writer<>(wa.getLog() + wb.getLog(), wb.getValue()));
-        }
-
-        @Contract(value = "_ -> !null", pure = true)
-        public @NotNull App<WriterK.@NotNull mu, @NotNull Unit> tell(@NotNull final String a) {
-            return new WriterK<>(new Writer<>(a, UNIT));
         }
     }
 }

@@ -65,8 +65,8 @@ public class StateTKind<S extends @NotNull Object, M extends @NotNull Object & M
                 @NotNull final App<StateTKind.@NotNull mu<S, M>, A> ma,
                 @NotNull final Function<? super A, ? extends @NotNull App<StateTKind.@NotNull mu<S, M>, B>> aToMb
         ) {
-            final StateT<S, M, A> sToSA = StateTKind.narrow(ma).getDelegate();
-            final StateT<S, M, B> res = s -> internalMonad.flatMap(sToSA.apply(s),
+            final StateT<S, M, A> sToMA = StateTKind.narrow(ma).getDelegate();
+            final StateT<S, M, B> res = s -> internalMonad.flatMap(sToMA.apply(s),
                     ss -> {
                         final S newState = ss.getState();
                         final A newVal = ss.getValue();
