@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
--- We use GeneralizedNewtypeDeriving to avoid boilerplate. As of GHC 7.8, it is safe.
+
+module Coroutine where
 
 import Control.Applicative
 import Control.Monad.Cont (MonadCont, callCC)
@@ -128,9 +129,9 @@ runCoroutineT !a = stateToInternal (corToState (runCoroutineT' (addExhaust a)))
     corToState :: Monad m => ContT r (StateT [CoroutineT r m ()] m) r -> StateT [CoroutineT r m ()] m r
     corToState !a = flip runContT return a
     addExhaust :: Monad m => CoroutineT r m a -> CoroutineT r m a
-    -- addExhaust x = liftA2 const x exhaust
     addExhaust x = do { l <- x ; exhaust ; return l }
 
+{-
 printOne :: (Show a, Enum a) => a -> CoroutineT r (Writer String) ()
 printOne n = do
     lift (tell $ show n)
@@ -149,3 +150,4 @@ ex = runCoroutineT $ do
 
 ex1 = runCoroutineT $ do
     fork $ myreplicateM_ 2 (printOne 4)
+-}
