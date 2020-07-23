@@ -1,0 +1,17 @@
+HKT
+- Haskell/Scala HKT
+  - why it is useful
+- Lightweight HKT
+  - Lightweight higher-kinded polymorphism - Jeremy Yallop and Leo White
+  - App interface
+  - Arrow, DataFixerUpper
+- type classes
+  - functor/monad
+  - examples: State, Writer, Parser
+- Continuation
+  - callCC
+- Monad transformers
+  - lifting
+- Coroutines implementation
+  - CoroutineT, CoroutineMonad
+  - examples
