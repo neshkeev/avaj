@@ -1,11 +1,13 @@
 HKT
-- Haskell/Scala HKT
+  - motivation
+  - Haskell/Scala HKT
   - why it is useful
 - Lightweight HKT
   - Lightweight higher-kinded polymorphism - Jeremy Yallop and Leo White
-  - App interface
+  - App interface, injections/projections
   - Arrow, DataFixerUpper
-- type classes
+- ad hoc polymorphism
+  - motivation
   - functor/monad
   - examples: State, Writer, Parser
 - Continuation
