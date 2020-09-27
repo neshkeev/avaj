@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static com.github.neshkeev.avaj.data.List.Cons.cons;
@@ -23,6 +24,12 @@ public abstract class List<T extends @NotNull Object> {
     @Contract(value = "_ -> !null", pure = true)
     @NotNull
     public abstract List<T> merge(@NotNull final List<T> right);
+
+    @Contract(pure = true)
+    public final <R extends @NotNull Object> R caseOf(final Function<Nil<T>, ? extends R> fromNil, final Function<Cons<T>, ? extends R> fromCons) {
+        if (this instanceof Nil) return fromNil.apply((Nil<T>) this);
+        return fromCons.apply((Cons<T>) this);
+    }
 
     @SafeVarargs
     @Contract(value = "_ -> !null", pure = true)

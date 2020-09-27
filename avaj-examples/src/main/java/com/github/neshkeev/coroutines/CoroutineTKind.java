@@ -110,13 +110,15 @@ public final class CoroutineTKind<
         @NotNull
         @Contract(value = "-> !null", pure = true)
         private CoroutineTKind<R, M, @NotNull Unit> dequeue() {
-            return this.flatMap(getCCs(),
-                    currCCs -> {
-                        if (currCCs.isEmpty()) return pure(UNIT);
-                        final CoroutineT<R, M, @NotNull Unit> head = currCCs.head();
-                        final List<@NotNull CoroutineT<R, M, @NotNull Unit>> tail = currCCs.tail();
-                        return flatMap(putCCs(tail), __ -> new CoroutineTKind<>(head));
-                    });
+            return this.flatMap(
+                    getCCs(),
+                    currCCs -> currCCs.caseOf(
+                            __ -> pure(UNIT),
+                            cons -> flatMap(
+                                    putCCs(cons.tail()), __ ->
+                                    new CoroutineTKind<>(cons.head())
+                            )
+                    ));
         }
 
         // queue :: Monad m => CoroutineT r m () -> CoroutineT r m ()
@@ -160,11 +162,12 @@ public final class CoroutineTKind<
         @NotNull
         @Contract(value = "-> !null", pure = true)
         private CoroutineTKind<R, M, @NotNull Unit> exhaust() {
-            return flatMap(getCCs(),
-                    ccs -> {
-                        if (ccs.isEmpty()) return pure(UNIT);
-                        return flatMap(this.yield(), __ -> exhaust());
-                    });
+            return flatMap(
+                    getCCs(),
+                    ccs -> ccs.caseOf(
+                            __ -> pure(UNIT),
+                            cons -> flatMap(this.yield(), __ -> exhaust())
+                    ));
         }
 
         @Override
